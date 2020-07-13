@@ -3,6 +3,7 @@ import argparse
 # import glob
 import platform
 import subprocess
+import os
 
 def solve_local_AT(image_path, method):
     # lba = Local_BA_Photoscan()
@@ -20,8 +21,10 @@ def solve_local_AT(image_path, method):
         command = "C:/Program Files/Agisoft/PhotoScan Pro/photoscan.exe"
         subprocess.call([command, "-r", "lba_photoscan_run.py", "--image-path", image_path])
     elif platform.system() == "Linux" and method == "photoscan":
-        command = "~/PhotoScan/photoscan-pro/photoscan.sh"
+        # command = "~/PhotoScan/photoscan-pro/photoscan.sh"
+        command = "/home/innopam-ldm/PhotoScan/photoscan-pro/photoscan.sh"
         subprocess.call([command, "-r", "lba_photoscan_run.py", "--image-path", image_path])
+        # os.system("/home/innopam-ldm/PhotoScan/photoscan-pro/photoscan.sh -r lba_photoscan_run.py --image-path" + image_path)
     else:
         print("None")
 
