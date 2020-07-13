@@ -15,23 +15,27 @@ def photoscan_alignphotos(image_path):
 
         doc = PhotoScan.app.document
         chunk = doc.addChunk()
-        for image in images_to_process:
-            print(image)
-            chunk.addPhotos(image)
+        # chunk.addPhotos([images_to_process], load_xmp_orientation=True)
+        chunk.addPhotos([images_to_process])
+        for camera in chunk.cameras:
+            print(camera)
+            if not camera.reference.location:
+                continue
+            if ("DJI/RelativeAltitude" in camera.photo.meta.keys()) and camera.reference.location:
+                z = float(camera.photo.meta["DJI/RelativeAltitude"])
+                camera.reference.location = (camera.reference.location.x, camera.reference.location.y, z)
+            gimbal_roll = float(camera.photo.meta["DJI/GimbalRollDegree"])
+            gimbal_pitch = float(camera.photo.meta["DJI/GimbalPitchDegree"])
+            gimbal_yaw = float(camera.photo.meta["DJI/GimbalYawDegree"])
+            camera.reference.rotation = (gimbal_yaw, 90+gimbal_pitch, gimbal_roll)
 
-        # # Set pixel size to 0.017mm
-        # doc.chunk.sensors[0].pixel_height = 0.017
-        # doc.chunk.sensors[0].pixel_width = 0.017
+            print(camera.reference.location, camera.reference.rotation)
+
         print(doc.chunk.sensors[0])
-
-        # Import RPY from EO file
-        for img_fname in image_path:
-            doc.chunk.loadReference(
-                img_fname.split('.')[0] + '.txt',
-                PhotoScan.ReferenceFormatCSV,
-                'nxyzabc',
-                '\t'
-            )
+        print(doc.chunk.sensors[0].focal_length)
+        print(doc.chunk.sensors[0].width, doc.chunk.sensors[0].height)
+        print(doc.chunk.sensors[0].pixel_width, doc.chunk.sensors[0].pixel_height)
+        print(doc.chunk.sensors[0].pixel_size)
 
         print("==match Photos=================================================")
         print("===============================================================")
@@ -47,38 +51,30 @@ def photoscan_alignphotos(image_path):
         # doc.save(path)
         # print("===============================================================")
 
-        center_photo_index = int(len(chunk.cameras) / 2)
-        print("center image number = ", center_photo_index)
+        camera = chunk.cameras[-1]
 
-        photo1 = chunk.cameras[center_photo_index]  # 5개의 이미지 list 중에서 중간 영상의 값
-
-        # 기본이미지정보 룰력 작업중
-        FocalLenth = photo1.photo.meta["Exif/FocalLength"]
-        print(FocalLenth)
-        image_width = photo1.photo.meta["Exif/Width"]
-        image_height = photo1.photo.meta["Exif/Height"]
-
-        IO = [FocalLenth, image_width, image_height]
-        print(IO)
-
-        if not photo1.transform:
+        if not camera.transform:
             print("There is no transformation matrix")
 
         print("==extract X(E), Y(N), Z(Altitude), Yaw, Pitch, Roll=============================")
-        XYZ = chunk.crs.project(chunk.transform.matrix.mulp(photo1.center))
+        estimated_coord = chunk.crs.project(chunk.transform.matrix.mulp(camera.center))
         T = chunk.transform.matrix
         m = chunk.crs.localframe(
-            T.mulp(photo1.center))  # transformation matrix to the LSE coordinates in the given point
-        R = m * T * photo1.transform * PhotoScan.Matrix().Diag([1, -1, -1, 1])
+            T.mulp(camera.center))  # transformation matrix to the LSE coordinates in the given point
+        R = m * T * camera.transform * PhotoScan.Matrix().Diag([1, -1, -1, 1])
 
         row = list()
-
         for j in range(0, 3):  # creating normalized rotation matrix 3x3
             row.append(R.row(j))
             row[j].size = 3
             row[j].normalize()
 
         R = PhotoScan.Matrix([row[0], row[1], row[2]])
+        estimated_ypr = PhotoScan.utils.mat2ypr(R)  # estimated orientation angles - yaw, pitch, roll
+        estimated_opk = PhotoScan.utils.mat2opk(R)  # estimated orientation angles - omega, phi, kappa
+        print(estimated_ypr)
+        print(estimated_opk)
+
         omega, phi, kappa = PhotoScan.utils.mat2opk(R)  # estimated orientation angles
 
         # print("EO(XYZ) = ", XYZ)
@@ -87,17 +83,15 @@ def photoscan_alignphotos(image_path):
         # print("R = ", R)
         # print("R = ", R)
 
-        fname = image_path[center_photo_index]
-        # print(type(XYZ))
-        XYZ_list = list(XYZ)
-        EO = [XYZ_list[0], XYZ_list[1], XYZ_list[2], kappa, phi, omega]
-
-        return fname, EO
-
-        # print("File Name: ", fname, "X(Longitude) = ", EO[0], "Y(Latitude) = ", EO[1], "Z(Altitude) = ", EO[2],
-        #       "yaw = ", EO[3], "pitch = ", EO[4],  "roll = ", EO[5])
+        pos = list(estimated_coord)
+        ori = list(estimated_opk)
+        EO = [pos[0], pos[1], pos[2], ori[0], ori[1], ori[2]]
+        print(EO)
 
         print("process time = ", time.time() - start_time)
+
+        return EO
+
 
 if __name__ == '__main__':
     # Set argument parser
@@ -107,5 +101,5 @@ if __name__ == '__main__':
     args = parser.parse_args()
     image_path = args.image_path
 
-    photoscan_alignphotos(image_path)
+    EO = photoscan_alignphotos(image_path)
 
