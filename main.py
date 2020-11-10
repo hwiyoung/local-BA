@@ -31,10 +31,8 @@ def solve_local_AT(image_path, method):
         print(x, y, z, o, p, k)
         print("test")
     elif platform.system() == "Linux" and method == "photoscan":
-        # command = "~/PhotoScan/photoscan-pro/photoscan.sh"
-        command = "/home/innopam-ldm/PhotoScan/photoscan-pro/photoscan.sh"
-        subprocess.call([command, "-r", "lba_photoscan_run.py", "--image-path", image_path])
-        # os.system("/home/innopam-ldm/PhotoScan/photoscan-pro/photoscan.sh -r lba_photoscan_run.py --image-path" + image_path)
+        command = os.path.join(os.path.expanduser("~"), "PhotoScan/photoscan-pro/photoscan.sh")
+        subprocess.run([command, "-r", "lba_photoscan_run.py", "--image-path", image_path])
     else:
         print("None")
 
@@ -43,7 +41,7 @@ if __name__ == '__main__':
     # Set argument parser
     parser = argparse.ArgumentParser(description='LocalBA')
     parser.add_argument('--image-path', required=True)
-    parser.add_argument('--method', required=True)
+    parser.add_argument('--method', default='photoscan')
 
     args = parser.parse_args()
     image_path = args.image_path

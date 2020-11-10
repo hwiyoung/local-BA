@@ -2,7 +2,7 @@ import PhotoScan
 import time
 import argparse
 import glob
-# import tabulate
+# from tabulate import tabulate
 
 
 def photoscan_alignphotos(image_path):
@@ -78,7 +78,12 @@ def photoscan_alignphotos(image_path):
         #                         "Omega(deg)", "Phi(deg)", "Kappa(deg)"],
         #                tablefmt='psql'))
 
-        print("process time of each image = ", time.time() - each_start_time)
+        print("  *** process time of each image = ", time.time() - each_start_time)
+
+        chunk.exportCameras(path="eo.txt", format=PhotoScan.CamerasFormatOPK, projection=PhotoScan.CoordinateSystem("EPSG::5186"))
+        chunk.exportPoints(path="pointclouds.las", source=PhotoScan.PointCloudData, format=PhotoScan.PointsFormatLAS, projection=PhotoScan.CoordinateSystem("EPSG::5186"))
+
+        # doc.save(path="project.psz", chunks=[doc.chunk])
 
     print(EOs)
     print("process time of total images = ", time.time() - first_start_time)

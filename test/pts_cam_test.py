@@ -86,13 +86,14 @@ def las2nparray(file_path):
 def main():
     # Import camera pose - test 100_0156_0113
     # TODO: based on files
-    eo = np.array([188142.8267815202700000, 555628.0175237776700000, 153.2081868545070300,
-                   -20.4685031451434160, -34.0945958355284020, -31.7078702493588980])
-    R = Rot3D(eo * np.pi / 180)
+    eo = np.array([412065.2417444444727153, 460266.2869342155754566, 99.5811297956551869,
+                   -0.9593599128210599, -0.1490554140282855, -18.2548477188996578])
+    eo[3:] *= np.pi / 180
+    R = Rot3D(eo)   # Transformation *coordinate system*
 
 
     # Import las to numpy array
-    points = las2nparray("test_KAU_150m_5186.las")
+    points = las2nparray("../pointclouds.las")
     # points = points / 100
 
     pangolin.CreateWindowAndBind('Main', 640, 480)
@@ -101,10 +102,8 @@ def main():
     # Define Projection and initial ModelView matrix
     scam = pangolin.OpenGlRenderState(
         pangolin.ProjectionMatrix(640, 480, 420, 420, 320, 240, 0.2, 200),
-        # pangolin.ModelViewLookAt(-2, 2, -2, 0, 0, 0, pangolin.AxisDirection.AxisY))
-        pangolin.ModelViewLookAt(np.average(points[:, 0]),
-                                 np.average(points[:, 1]),
-                                 np.average(points[:, 2]), 0, 0, 0, pangolin.AxisDirection.AxisY))
+        pangolin.ModelViewLookAt(eo[0], eo[1], eo[2], eo[0], eo[1], 0, pangolin.AxisDirection.AxisY))
+        # pangolin.ModelViewLookAt(fromX, fromY, fromZ, toX, toY, toZ, up_axis))
     handler = pangolin.Handler3D(scam)
 
     # Create Interactive View in window
@@ -141,9 +140,9 @@ def main():
         #                          [0, 1, 1],
         #                          [0, -1, 1]])  # rotation, 45 deg up
         pose[:3, 3] = eo[0:3].T
-        pose[:3, :3] = R
-        gl.glLineWidth(1)
-        gl.glColor3f(0.0, 0.0, 1.0)
+        pose[:3, :3] = R.T
+        gl.glLineWidth(3)
+        gl.glColor3f(1.0, 0.0, 1.0)
         pangolin.DrawCamera(pose, 0.5, 0.75, 0.8)
 
         pangolin.FinishFrame()
