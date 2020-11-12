@@ -140,9 +140,7 @@ def main():
         #                          [0, 1, 1],
         #                          [0, -1, 1]])  # rotation, 45 deg up
         pose[:3, 3] = eo[0:3].T
-        R_test = R.T
-        R_test[:, 2] = -R_test[:, 2]
-        pose[:3, :3] = R_test
+        pose[:3, :3] = -R.T
         gl.glLineWidth(3)
         gl.glColor3f(1.0, 0.0, 1.0)
         pangolin.DrawCamera(pose, 0.5, 0.75, 0.8)

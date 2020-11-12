@@ -1,23 +1,12 @@
-import argparse
-# from lba_photoscan import Local_BA_Photoscan
-# import glob
+import glob
+import time
+from collections import deque
 import platform
 import subprocess
 import os
 
-def solve_local_AT(image_path, method):
-    # lba = Local_BA_Photoscan()
-    #
-    # images = glob.glob(image_path)
-    #
-    # for i in range(len(images)-5):
-    #     images_to_process = images[i:i+4]
-    #     name, EO = lba.photoscan_alignphotos(images_to_process)
-    #     print(name, EO)
-    #
-    # print("Done")
-
-    if platform.system() == "Windows" and method == "photoscan":
+def solve_local_AT(images):
+    if platform.system() == "Windows":
         command = "C:/Program Files/Agisoft/PhotoScan Pro/photoscan.exe"
         # subprocess.call([command, "-r", "lba_photoscan_run.py", "--image-path", image_path])
         ret_bytes = subprocess.check_output([command, "-r", "test_lba_photoscan_run.py", "--image-path", image_path])
@@ -30,21 +19,36 @@ def solve_local_AT(image_path, method):
         k = float(ret_str.split("\n")[-2])
         print(x, y, z, o, p, k)
         print("test")
-    elif platform.system() == "Linux" and method == "photoscan":
+    elif platform.system() == "Linux":
         command = os.path.join(os.path.expanduser("~"), "PhotoScan/photoscan-pro/photoscan.sh")
-        subprocess.run([command, "-r", "lba_photoscan_run.py", "--image-path", image_path])
+        subprocess.run([command, "-r", "local_ba.py", "--images", images])
     else:
         print("None")
 
 
-if __name__ == '__main__':
-    # Set argument parser
-    parser = argparse.ArgumentParser(description='LocalBA')
-    parser.add_argument('--image-path', required=True)
-    parser.add_argument('--method', default='photoscan')
+no_images_process = 5
+image_path = '../00_data/sample_dji'
+images = glob.glob(image_path + "/*.JPG")
+images.sort()
+images_to_process = deque(maxlen=no_images_process)
+start_time = time.time()
+for i in range(len(images)):
+    try:
+        if i < 4:
+            images_to_process.append(images[i])
+            print("i < 4", images_to_process)
+            continue
+        elif i == 4:
+            images_to_process.append(images[i])
+            solve_local_AT(' '.join(images_to_process))
+            print("i == 4", images_to_process)
+        else:
+            images_to_process.append(images[i])
+            print("else", images_to_process)
+    except Exception as e:
+        print(e)
+        break
 
-    args = parser.parse_args()
-    image_path = args.image_path
-    method = args.method
-
-    solve_local_AT(image_path, method)
+print("==============================================")
+print(" *** Elapsed time: %.2f" % (time.time() - start_time))
+print("==============================================")
