@@ -1,32 +1,7 @@
 import PhotoScan
 import time
 import argparse
-# from module import read_eo_list
-
-
-def read_eo_list(eo_file):
-    print("=====================================")
-    print(" * Read EOs, list type from a file")
-    print("=====================================")
-
-    f = open(eo_file, 'r')
-    next(f)
-    next(f)
-    lines = f.readlines()
-    f.close()
-
-    EOs = []
-    for i in range(len(lines)):
-        params = lines[i].split("\t")
-        x = float(params[1])  # m
-        y = float(params[2])  # m
-        z = float(params[3])  # m
-        o = float(params[4])  # deg
-        p = float(params[5])  # deg
-        k = float(params[6])  # deg
-        EOs.append([x, y, z, o, p, k])
-
-    return EOs
+from module import read_eo
 
 
 def photoscan_alignphotos_first(images):
@@ -80,12 +55,14 @@ def photoscan_alignphotos_first(images):
 
     print("  *** process time of each image = ", time.time() - start_time)
 
-    # chunk.exportCameras(path="eo.txt", format=PhotoScan.CamerasFormatOPK, projection=PhotoScan.CoordinateSystem("EPSG::5186"))
-    # chunk.exportPoints(path="pointclouds.las", source=PhotoScan.PointCloudData, format=PhotoScan.PointsFormatLAS, projection=PhotoScan.CoordinateSystem("EPSG::5186"))
-    chunk.exportCameras(path="eo.txt", format=PhotoScan.CamerasFormatOPK,
-                        projection=PhotoScan.CoordinateSystem("EPSG::4326"))
+    chunk.crs = PhotoScan.CoordinateSystem("EPSG::5186")
+    chunk.euler_angles = PhotoScan.EulerAnglesOPK
+
+    # chunk.exportCameras(path="eo.txt", format=PhotoScan.CamerasFormatOPK,
+    #                     projection=PhotoScan.CoordinateSystem("EPSG::5186"), use_labels=True)
+    chunk.saveReference(path="eo.txt", format=PhotoScan.ReferenceFormatCSV, columns="nuvwdef", delimiter=",")
     chunk.exportPoints(path="pointclouds.las", source=PhotoScan.PointCloudData, format=PhotoScan.PointsFormatLAS,
-                       projection=PhotoScan.CoordinateSystem("EPSG::4326"))
+                       projection=PhotoScan.CoordinateSystem("EPSG::5186"))
 
     doc.save(path="first.psz", chunks=[doc.chunk])
 
@@ -93,14 +70,23 @@ def photoscan_alignphotos_first(images):
 def photoscan_alignphotos_rest(images):
     start_time = time.time()
 
-    # Import camera pose
-    EOs = read_eo_list(eo_file="eo.txt")
+    # # Read camera pose
+    # EOs = read_eo(eo_file="eo.txt")
 
     images = images.split()
+
     doc = PhotoScan.app.document
     chunk = doc.addChunk()
+    chunk.crs = PhotoScan.CoordinateSystem("EPSG::5186")
+    chunk.euler_angles = PhotoScan.EulerAnglesOPK
+
     chunk.addPhotos(images)
-    chunk.importCameras(path="eo.txt", format=PhotoScan.CamerasFormatOPK)
+    # chunk.importCameras(path="eo.txt", format=PhotoScan.CamerasFormatOPK)
+    chunk.loadReference(path="eo.txt", format=PhotoScan.ReferenceFormatCSV, columns="nxyzabc",
+                        delimiter=",", skip_rows=2)
+
+    # TODO: Have to deal with EO of the new image, crs is different
+
     # for i in range(len(chunk.cameras)):
     #     if not chunk.cameras[i].reference.location:
     #         continue
@@ -123,36 +109,36 @@ def photoscan_alignphotos_rest(images):
 
     doc.save(path="rest.psz", chunks=[doc.chunk])
 
-    chunk.matchPhotos(accuracy=PhotoScan.MediumAccuracy)
-    chunk.alignCameras()
-
-    camera = chunk.cameras[-1]
-    if not camera.transform:
-        print("There is no transformation matrix")
-
-    estimated_coord = chunk.crs.project(
-        chunk.transform.matrix.mulp(camera.center)) #estimated XYZ in coordinate system units
-    T = chunk.transform.matrix
-    m = chunk.crs.localframe(
-        T.mulp(camera.center))  # transformation matrix to the LSE coordinates in the given point
-    R = (m * T * camera.transform * PhotoScan.Matrix().Diag([1, -1, -1, 1])).rotation()
-
-    estimated_ypr = PhotoScan.utils.mat2ypr(R)  # estimated orientation angles - yaw, pitch, roll
-    estimated_opk = PhotoScan.utils.mat2opk(R)  # estimated orientation angles - omega, phi, kappa
-
-    pos = list(estimated_coord)
-    ori = list(estimated_opk)
-    eo = [pos[0], pos[1], pos[2], ori[0], ori[1], ori[2]]
-    print("======================================================================================================")
-    print(images[-1], eo)
-    print("======================================================================================================")
-
-    print("  *** process time of each image = ", time.time() - start_time)
-
-    chunk.exportCameras(path="eo.txt", format=PhotoScan.CamerasFormatOPK, projection=PhotoScan.CoordinateSystem("EPSG::5186"))
-    chunk.exportPoints(path="pointclouds.las", source=PhotoScan.PointCloudData, format=PhotoScan.PointsFormatLAS, projection=PhotoScan.CoordinateSystem("EPSG::5186"))
-
-    doc.save(path="rest.psz", chunks=[doc.chunk])
+    # chunk.matchPhotos(accuracy=PhotoScan.MediumAccuracy)
+    # chunk.alignCameras()
+    #
+    # camera = chunk.cameras[-1]
+    # if not camera.transform:
+    #     print("There is no transformation matrix")
+    #
+    # estimated_coord = chunk.crs.project(
+    #     chunk.transform.matrix.mulp(camera.center)) #estimated XYZ in coordinate system units
+    # T = chunk.transform.matrix
+    # m = chunk.crs.localframe(
+    #     T.mulp(camera.center))  # transformation matrix to the LSE coordinates in the given point
+    # R = (m * T * camera.transform * PhotoScan.Matrix().Diag([1, -1, -1, 1])).rotation()
+    #
+    # estimated_ypr = PhotoScan.utils.mat2ypr(R)  # estimated orientation angles - yaw, pitch, roll
+    # estimated_opk = PhotoScan.utils.mat2opk(R)  # estimated orientation angles - omega, phi, kappa
+    #
+    # pos = list(estimated_coord)
+    # ori = list(estimated_opk)
+    # eo = [pos[0], pos[1], pos[2], ori[0], ori[1], ori[2]]
+    # print("======================================================================================================")
+    # print(images[-1], eo)
+    # print("======================================================================================================")
+    #
+    # print("  *** process time of each image = ", time.time() - start_time)
+    #
+    # # chunk.exportCameras(path="eo.txt", format=PhotoScan.CamerasFormatOPK, projection=PhotoScan.CoordinateSystem("EPSG::5186"))
+    # # chunk.exportPoints(path="pointclouds.las", source=PhotoScan.PointCloudData, format=PhotoScan.PointsFormatLAS, projection=PhotoScan.CoordinateSystem("EPSG::5186"))
+    # #
+    # # doc.save(path="rest.psz", chunks=[doc.chunk])
 
 
 if __name__ == '__main__':

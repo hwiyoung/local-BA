@@ -69,7 +69,7 @@ for i in range(len(images)):
         elif i == 4:
             images_to_process.append(images[i])
             solve_local_ba_first(' '.join(images_to_process))
-            visualize(eo_file="eo.txt", pc_file="pointclouds.las")
+            # visualize(eo_file="eo.txt", pc_file="pointclouds.las")
             print("i == 4", images_to_process)
         else:
             images_to_process.append(images[i])
