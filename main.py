@@ -11,20 +11,9 @@ from module import read_eo
 
 def solve_local_ba_first(images):
     if platform.system() == "Windows":
-        command = "C:/Program Files/Agisoft/PhotoScan Pro/photoscan.exe"
-        # subprocess.call([command, "-r", "lba_photoscan_run.py", "--image-path", image_path])
-        ret_bytes = subprocess.check_output([command, "-r", "test_lba_photoscan_run.py", "--image-path", image_path])
-        ret_str = ret_bytes.decode()
-        x = float(ret_str.split("\n")[-7])
-        y = float(ret_str.split("\n")[-6])
-        z = float(ret_str.split("\n")[-5])
-        o = float(ret_str.split("\n")[-4])
-        p = float(ret_str.split("\n")[-3])
-        k = float(ret_str.split("\n")[-2])
-        print(x, y, z, o, p, k)
-        print("test")
+        pass
     elif platform.system() == "Linux":
-        command = os.path.join(os.path.expanduser("~"), "PhotoScan/photoscan-pro/photoscan.sh")
+        command = os.path.join(os.path.expanduser("~"), "Metashape/metashape-pro/metashape.sh")
         subprocess.run([command, "-r", "local_ba.py", "--images", images, "--method", "first"])
     else:
         print("Please choose between Windows and Linux")
@@ -32,20 +21,9 @@ def solve_local_ba_first(images):
 
 def solve_local_ba_rest(images):
     if platform.system() == "Windows":
-        command = "C:/Program Files/Agisoft/PhotoScan Pro/photoscan.exe"
-        # subprocess.call([command, "-r", "lba_photoscan_run.py", "--image-path", image_path])
-        ret_bytes = subprocess.check_output([command, "-r", "test_lba_photoscan_run.py", "--image-path", image_path])
-        ret_str = ret_bytes.decode()
-        x = float(ret_str.split("\n")[-7])
-        y = float(ret_str.split("\n")[-6])
-        z = float(ret_str.split("\n")[-5])
-        o = float(ret_str.split("\n")[-4])
-        p = float(ret_str.split("\n")[-3])
-        k = float(ret_str.split("\n")[-2])
-        print(x, y, z, o, p, k)
-        print("test")
+        pass
     elif platform.system() == "Linux":
-        command = os.path.join(os.path.expanduser("~"), "PhotoScan/photoscan-pro/photoscan.sh")
+        command = os.path.join(os.path.expanduser("~"), "Metashape/metashape-pro/metashape.sh")
         subprocess.run([command, "-r", "local_ba.py", "--images", images, "--method", "rest"])
     else:
         print("Please choose between Windows and Linux")

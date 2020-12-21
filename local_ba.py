@@ -1,14 +1,13 @@
-import PhotoScan
+import Metashape
 import time
 import argparse
-from module import read_eo
 
 
 def photoscan_alignphotos_first(images):
     start_time = time.time()
 
     images = images.split()
-    doc = PhotoScan.app.document
+    doc = Metashape.app.document
     chunk = doc.addChunk()
     chunk.addPhotos(images)
     for camera in chunk.cameras:
@@ -22,14 +21,7 @@ def photoscan_alignphotos_first(images):
         gimbal_yaw = float(camera.photo.meta["DJI/GimbalYawDegree"])
         camera.reference.rotation = (gimbal_yaw, 90+gimbal_pitch, gimbal_roll)
 
-        # print(camera.reference.location, camera.reference.rotation)
-        # print(doc.chunk.sensors[0])
-        # print(doc.chunk.sensors[0].focal_length)
-        # print(doc.chunk.sensors[0].width, doc.chunk.sensors[0].height)
-        # print(doc.chunk.sensors[0].pixel_width, doc.chunk.sensors[0].pixel_height)
-        # print(doc.chunk.sensors[0].pixel_size)
-
-    chunk.matchPhotos(accuracy=PhotoScan.MediumAccuracy)
+    chunk.matchPhotos(downscale=2)
     chunk.alignCameras()
 
     camera = chunk.cameras[-1]
@@ -41,10 +33,10 @@ def photoscan_alignphotos_first(images):
     T = chunk.transform.matrix
     m = chunk.crs.localframe(
         T.mulp(camera.center))  # transformation matrix to the LSE coordinates in the given point
-    R = (m * T * camera.transform * PhotoScan.Matrix().Diag([1, -1, -1, 1])).rotation()
+    R = (m * T * camera.transform * Metashape.Matrix().Diag([1, -1, -1, 1])).rotation()
 
-    estimated_ypr = PhotoScan.utils.mat2ypr(R)  # estimated orientation angles - yaw, pitch, roll
-    estimated_opk = PhotoScan.utils.mat2opk(R)  # estimated orientation angles - omega, phi, kappa
+    estimated_ypr = Metashape.utils.mat2ypr(R)  # estimated orientation angles - yaw, pitch, roll
+    estimated_opk = Metashape.utils.mat2opk(R)  # estimated orientation angles - omega, phi, kappa
 
     pos = list(estimated_coord)
     ori = list(estimated_opk)
@@ -55,14 +47,13 @@ def photoscan_alignphotos_first(images):
 
     print("  *** process time of each image = ", time.time() - start_time)
 
-    chunk.crs = PhotoScan.CoordinateSystem("EPSG::5186")
-    chunk.euler_angles = PhotoScan.EulerAnglesOPK
+    chunk.crs = Metashape.CoordinateSystem("EPSG::5186")
+    chunk.euler_angles = Metashape.EulerAnglesOPK
 
-    # chunk.exportCameras(path="eo.txt", format=PhotoScan.CamerasFormatOPK,
-    #                     projection=PhotoScan.CoordinateSystem("EPSG::5186"), use_labels=True)
-    chunk.saveReference(path="eo.txt", format=PhotoScan.ReferenceFormatCSV, columns="nuvwdef", delimiter=",")
-    chunk.exportPoints(path="pointclouds.las", source=PhotoScan.PointCloudData, format=PhotoScan.PointsFormatLAS,
-                       projection=PhotoScan.CoordinateSystem("EPSG::5186"))
+    chunk.exportReference(path="eo.txt", format=Metashape.ReferenceFormatCSV, items=Metashape.ReferenceItemsCameras,
+                          columns="nouvwdef", delimiter=",")
+    chunk.exportPoints(path="pointclouds.las", source=Metashape.PointCloudData, format=Metashape.PointsFormatLAS,
+                       projection=Metashape.CoordinateSystem("EPSG::5186"))
 
     doc.save(path="first.psz", chunks=[doc.chunk])
 
@@ -70,36 +61,32 @@ def photoscan_alignphotos_first(images):
 def photoscan_alignphotos_rest(images):
     start_time = time.time()
 
-    # # Read camera pose
-    # EOs = read_eo(eo_file="eo.txt")
-
     images = images.split()
 
-    doc = PhotoScan.app.document
+    doc = Metashape.app.document
     chunk = doc.addChunk()
     chunk.addPhotos(images)
 
-    chunk.crs = PhotoScan.CoordinateSystem("EPSG::5186")
-    chunk.euler_angles = PhotoScan.EulerAnglesOPK
+    chunk.crs = Metashape.CoordinateSystem("EPSG::5186")
+    chunk.euler_angles = Metashape.EulerAnglesOPK
 
-    # chunk.importCameras(path="eo.txt", format=PhotoScan.CamerasFormatOPK)
-    chunk.loadReference(path="eo.txt", format=PhotoScan.ReferenceFormatCSV, columns="nxyzabc",
+    chunk.loadReference(path="eo.txt", format=Metashape.ReferenceFormatCSV, columns="nxyzabc",
                         delimiter=",", skip_rows=2)
     chunk.updateTransform()
 
-    in_crs = PhotoScan.CoordinateSystem("EPSG::4326")
-    out_crs = PhotoScan.CoordinateSystem("EPSG::5186")
+    in_crs = Metashape.CoordinateSystem("EPSG::4326")
+    out_crs = Metashape.CoordinateSystem("EPSG::5186")
     chunk.cameras[-1].reference.location = \
-        PhotoScan.CoordinateSystem.transform(point=chunk.cameras[-1].reference.location, source=in_crs, target=out_crs)
+        Metashape.CoordinateSystem.transform(point=chunk.cameras[-1].reference.location, source=in_crs, target=out_crs)
     z = float(chunk.cameras[-1].photo.meta["DJI/RelativeAltitude"])
     chunk.cameras[-1].reference.location = (
         chunk.cameras[-1].reference.location.x, chunk.cameras[-1].reference.location.y, z)
 
     # fist 4 images
-    chunk.camera_location_accuracy = PhotoScan.Vector([0.001, 0.001, 0.001])
-    chunk.camera_rotation_accuracy = PhotoScan.Vector([0.01, 0.01, 0.01])
+    chunk.camera_location_accuracy = Metashape.Vector([0.001, 0.001, 0.001])
+    chunk.camera_rotation_accuracy = Metashape.Vector([0.01, 0.01, 0.01])
     # last image
-    chunk.cameras[-1].reference.accuracy = PhotoScan.Vector([10, 10, 10])
+    chunk.cameras[-1].reference.accuracy = Metashape.Vector([10, 10, 10])
 
     # # TODO: ypr to opk
     # gimbal_roll = float(chunk.cameras[-1].photo.meta["DJI/GimbalRollDegree"])
@@ -110,7 +97,7 @@ def photoscan_alignphotos_rest(images):
     # doc.save(path="rest.psz", chunks=[doc.chunk])
 
     # TODO: reset_matches, reset_alignment
-    chunk.matchPhotos(accuracy=PhotoScan.MediumAccuracy)
+    chunk.matchPhotos(accuracy=Metashape.MediumAccuracy)
     chunk.alignCameras()
 
     camera = chunk.cameras[-1]
@@ -122,10 +109,10 @@ def photoscan_alignphotos_rest(images):
     T = chunk.transform.matrix
     m = chunk.crs.localframe(
         T.mulp(camera.center))  # transformation matrix to the LSE coordinates in the given point
-    R = (m * T * camera.transform * PhotoScan.Matrix().Diag([1, -1, -1, 1])).rotation()
+    R = (m * T * camera.transform * Metashape.Matrix().Diag([1, -1, -1, 1])).rotation()
 
-    estimated_ypr = PhotoScan.utils.mat2ypr(R)  # estimated orientation angles - yaw, pitch, roll
-    estimated_opk = PhotoScan.utils.mat2opk(R)  # estimated orientation angles - omega, phi, kappa
+    estimated_ypr = Metashape.utils.mat2ypr(R)  # estimated orientation angles - yaw, pitch, roll
+    estimated_opk = Metashape.utils.mat2opk(R)  # estimated orientation angles - omega, phi, kappa
 
     pos = list(estimated_coord)
     ori = list(estimated_opk)
@@ -136,16 +123,16 @@ def photoscan_alignphotos_rest(images):
 
     print("  *** process time of each image = ", time.time() - start_time)
 
-    chunk.saveReference(path="eo.txt", format=PhotoScan.ReferenceFormatCSV, columns="nuvwdef", delimiter=",")
-    chunk.exportPoints(path="pointclouds.las", source=PhotoScan.PointCloudData, format=PhotoScan.PointsFormatLAS,
-                       projection=PhotoScan.CoordinateSystem("EPSG::5186"))
+    chunk.saveReference(path="eo.txt", format=Metashape.ReferenceFormatCSV, columns="nuvwdef", delimiter=",")
+    chunk.exportPoints(path="pointclouds.las", source=Metashape.PointCloudData, format=Metashape.PointsFormatLAS,
+                       projection=Metashape.CoordinateSystem("EPSG::5186"))
 
     doc.save(path="rest.psz", chunks=[doc.chunk])
 
 
 if __name__ == '__main__':
     # Set argument parser
-    parser = argparse.ArgumentParser(description='LBA-photoscan')
+    parser = argparse.ArgumentParser(description='LBA-metashape')
     parser.add_argument('--images', required=True)
     parser.add_argument('--method', required=True)
 
