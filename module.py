@@ -59,6 +59,7 @@ def las2nparray(file_path):
     point_records = input_las.points.copy()
 
     # TODO: read the color of points
+    #https://github.com/strawlab/python-pcl/issues/171
 
     # getting scaling and offset parameters
     las_scaleX = input_las.header.scale[0]
@@ -94,7 +95,7 @@ def read_eo(eo_file):
 
     EOs = np.empty(shape=(len(lines), 6), dtype=float)
     for i in range(len(lines)):
-        params = lines[i].split("\t")
+        params = lines[i].split(",")
         EOs[i, 0] = float(params[1])  # m
         EOs[i, 1] = float(params[2])  # m
         EOs[i, 2] = float(params[3])  # m
