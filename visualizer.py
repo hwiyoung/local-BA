@@ -21,7 +21,7 @@ def visualize(eo_file, pc_file):
 
     # Define Projection and initial ModelView matrix
     scam = pangolin.OpenGlRenderState(
-        pangolin.ProjectionMatrix(640, 480, 420, 420, 320, 240, 0.2, 200),
+        pangolin.ProjectionMatrix(640, 480, 420, 420, 320, 240, 0.1, 5000),
         pangolin.ModelViewLookAt(EOs[0, 0], EOs[0, 1], EOs[0, 2], EOs[0, 0], EOs[0, 1], 0, pangolin.AxisDirection.AxisY))
         # pangolin.ModelViewLookAt(fromX, fromY, fromZ, toX, toY, toZ, up_axis))
     handler = pangolin.Handler3D(scam)

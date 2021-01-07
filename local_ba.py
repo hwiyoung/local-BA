@@ -74,6 +74,8 @@ def photoscan_alignphotos_rest(images):
     # last image
     chunk.cameras[-1].reference.accuracy = Metashape.Vector([10, 10, 10])
 
+    # doc.save(path="rest3.psz", chunks=[doc.chunk])
+
     # # TODO: ypr to opk
     # gimbal_roll = float(chunk.cameras[-1].photo.meta["DJI/GimbalRollDegree"])
     # gimbal_pitch = float(chunk.cameras[-1].photo.meta["DJI/GimbalPitchDegree"])
@@ -89,6 +91,7 @@ def photoscan_alignphotos_rest(images):
     camera = chunk.cameras[-1]
     if not camera.transform:
         print("There is no transformation matrix")
+        return
 
     estimated_coord = chunk.crs.project(
         chunk.transform.matrix.mulp(camera.center)) #estimated XYZ in coordinate system units
@@ -109,10 +112,10 @@ def photoscan_alignphotos_rest(images):
 
     print("  *** process time of each image = ", time.time() - start_time)
 
-    # chunk.exportReference(path="eo.txt", format=Metashape.ReferenceFormatCSV, items=Metashape.ReferenceItemsCameras,
-    #                       columns="nuvwdefo", delimiter=",")
-    # chunk.exportPoints(path="pointclouds.las", source_data=Metashape.PointCloudData, format=Metashape.PointsFormatLAS,
-    #                    crs=Metashape.CoordinateSystem("EPSG::5186"))
+    chunk.exportReference(path="eo.txt", format=Metashape.ReferenceFormatCSV, items=Metashape.ReferenceItemsCameras,
+                          columns="nuvwdefo", delimiter=",")
+    chunk.exportPoints(path="pointclouds.las", source_data=Metashape.PointCloudData, format=Metashape.PointsFormatLAS,
+                       crs=Metashape.CoordinateSystem("EPSG::5186"))
 
     doc.save(path="rest.psz", chunks=[doc.chunk])
 

@@ -87,14 +87,29 @@ class Viewer3D(object):
 
         pangolin.CreateWindowAndBind('Map Viewer', w, h)
         gl.glEnable(gl.GL_DEPTH_TEST)
-        
-        viewpoint_x = 0
-        viewpoint_y = -40
-        viewpoint_z = -80
+
+        # viewpoint_x1 = 412065.945071
+        # viewpoint_y1 = 460265.659708
+        # viewpoint_z1 = 99.475427 + 50
+        # viewpoint_x2 = 412138.851479
+        # viewpoint_y2 = 460393.182716
+        # viewpoint_z2 = 137.638273
+        # self.look_view = pangolin.ModelViewLookAt(viewpoint_x1, viewpoint_y1, viewpoint_z1,
+        #                                           viewpoint_x2, viewpoint_y2, 0, 0, 1, 0)
+
+        viewpoint_x = 412138.851479
+        viewpoint_y = 460393.182716
+        viewpoint_z = 137.638273 + 100
+        self.look_view = pangolin.ModelViewLookAt(viewpoint_x, viewpoint_y, viewpoint_z, viewpoint_x, viewpoint_y, 0, 0, 1, 0)
+
+
+        # viewpoint_x = 0
+        # viewpoint_y = -40
+        # viewpoint_z = -80
         viewpoint_f = 1000
             
         self.proj = pangolin.ProjectionMatrix(w, h, viewpoint_f, viewpoint_f, w//2, h//2, 0.1, 5000)
-        self.look_view = pangolin.ModelViewLookAt(viewpoint_x, viewpoint_y, viewpoint_z, 0, 0, 0, 0, -1, 0)
+        # self.look_view = pangolin.ModelViewLookAt(viewpoint_x, viewpoint_y, viewpoint_z, 0, 0, 0, 0, -1, 0)
         self.scam = pangolin.OpenGlRenderState(self.proj, self.look_view)
         self.handler = pangolin.Handler3D(self.scam)
 
@@ -157,15 +172,35 @@ class Viewer3D(object):
                     
         # self.int_slider.SetVal(int(self.float_slider))
         self.pointSize = self.int_slider.Get()
+
+        # print("look_view:", self.look_view.m)
+        # print("Twc:", self.Twc.m)
+        # self.Twc.m[0:3, 3] = -1 * self.Twc.m[0:3, 3]    # no affect
+        # print("Twc:", self.Twc.m)
+        # print("cur_pose:", self.map_state.cur_pose)
+        # print(self.Twc.m == self.map_state.cur_pose)
+        # # print("Twc inv:", self.Twc.Inverse().m)
+
+        test_Twc = pangolin.OpenGlMatrix()
+        # test_Twc.m[0:3, 3] = -self.map_state.cur_pose[0:3, 3].T     # no affect
+        # test_Twc.m[0, 3] = -self.map_state.cur_pose[0, 3]           # no affect
+        # test_Twc.m[0:3, 0:3] = self.map_state.cur_pose[0:3, 0:3]    # no affect
+        test_Twc.m = self.map_state.cur_pose
+        # print(self.map_state.cur_pose[0:3, 3], self.map_state.cur_pose[0:3, 0:3])
+        # # test_Twc.m[0:3, 0:3] = np.identity(3)
+        # print("test_Twc:", test_Twc.m)
             
         if self.do_follow and self.is_following:
-            self.scam.Follow(self.Twc, True)
+            # self.scam.Follow(self.look_view, True)
+            self.scam.Follow(test_Twc, True)
+            # self.scam.Follow(self.Twc, True)
         elif self.do_follow and not self.is_following:
-            self.scam.SetModelViewMatrix(self.look_view)
-            self.scam.Follow(self.Twc, True)
+            # self.scam.SetModelViewMatrix(self.look_view)
+            # self.scam.Follow(self.Twc, True)
+            self.scam.Follow(test_Twc, True)
             self.is_following = True
         elif not self.do_follow and self.is_following:
-            self.is_following = False            
+            self.is_following = False
 
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
         gl.glClearColor(1.0, 1.0, 1.0, 1.0)
@@ -185,6 +220,19 @@ class Viewer3D(object):
                 pangolin.DrawCamera(self.map_state.cur_pose)
                 gl.glLineWidth(1)                
                 self.updateTwc(self.map_state.cur_pose)
+
+                # Draw Axes - test
+                EOs = self.map_state.cur_pose[0:3, 3].T
+                gl.glLineWidth(2)
+                gl.glColor3f(1.0, 0.0, 0.0)
+                x_axis = np.array([[EOs[0], EOs[1], EOs[2]], [EOs[0] + 10, EOs[1], EOs[2]]])
+                pangolin.DrawLine(x_axis)
+                gl.glColor3f(0.0, 1.0, 0.0)
+                y_axis = np.array([[EOs[0], EOs[1], EOs[2]], [EOs[0], EOs[1] + 10, EOs[2]]])
+                pangolin.DrawLine(y_axis)
+                gl.glColor3f(0.0, 0.0, 1.0)
+                z_axis = np.array([[EOs[0], EOs[1], EOs[2]], [EOs[0], EOs[1], EOs[2] + 10]])
+                pangolin.DrawLine(z_axis)
                 
             if self.map_state.predicted_pose is not None and kDrawCameraPrediction:
                 # draw predicted pose in red
