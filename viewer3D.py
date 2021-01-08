@@ -99,7 +99,7 @@ class Viewer3D(object):
 
         viewpoint_x = 412138.851479
         viewpoint_y = 460393.182716
-        viewpoint_z = 137.638273 + 100
+        viewpoint_z = 137.638273 + 500
         self.look_view = pangolin.ModelViewLookAt(viewpoint_x, viewpoint_y, viewpoint_z, viewpoint_x, viewpoint_y, 0, 0, 1, 0)
 
 
@@ -213,13 +213,17 @@ class Viewer3D(object):
         # ==============================
         # draw map 
         if self.map_state is not None:
+            ratio = 5
+            w = 1.0 * ratio
+            h = 0.75 * ratio / ratio
+            z = 0.6 * ratio / ratio
             if self.map_state.cur_pose is not None:
                 # draw current pose in blue
                 gl.glColor3f(0.0, 0.0, 1.0)
-                gl.glLineWidth(2)                
-                pangolin.DrawCamera(self.map_state.cur_pose)
+                gl.glLineWidth(2)
+                pangolin.DrawCamera(self.map_state.cur_pose, w, h, z)
                 gl.glLineWidth(1)                
-                self.updateTwc(self.map_state.cur_pose)
+                # self.updateTwc(self.map_state.cur_pose)
 
                 # Draw Axes - test
                 EOs = self.map_state.cur_pose[0:3, 3].T
@@ -237,20 +241,20 @@ class Viewer3D(object):
             if self.map_state.predicted_pose is not None and kDrawCameraPrediction:
                 # draw predicted pose in red
                 gl.glColor3f(1.0, 0.0, 0.0)
-                pangolin.DrawCamera(self.map_state.predicted_pose)           
+                pangolin.DrawCamera(self.map_state.predicted_pose)
                 
             if len(self.map_state.poses) >1:
                 # draw keyframe poses in green
                 if self.draw_cameras:
                     gl.glColor3f(0.0, 1.0, 0.0)
-                    pangolin.DrawCameras(self.map_state.poses[:])
+                    pangolin.DrawCameras(self.map_state.poses[:], w, h, z)
 
             if len(self.map_state.points)>0:
                 # draw keypoints with their color
                 gl.glPointSize(self.pointSize)
-                gl.glColor3f(1.0, 0.0, 0.0)
-                pangolin.DrawPoints(self.map_state.points)
-                # pangolin.DrawPoints(self.map_state.points, self.map_state.colors)
+                # gl.glColor3f(1.0, 0.0, 0.0)
+                # pangolin.DrawPoints(self.map_state.points)
+                pangolin.DrawPoints(self.map_state.points, self.map_state.colors)
                 
             if self.map_state.reference_pose is not None and kDrawReferenceCamera:
                 # draw predicted pose in purple
@@ -310,7 +314,7 @@ class Viewer3D(object):
         pangolin.FinishFrame()
 
 
-    def draw_map(self, poses, points):
+    def draw_map(self, poses, points, colors):
         if self.qmap is None:
             return
 
@@ -331,7 +335,8 @@ class Viewer3D(object):
         #     reference_pose = slam.tracking.kf_ref.Twc.copy()
 
         # poses
-        map_state.poses = poses[0:4]    # prev 4 images
+        # map_state.poses = poses[-5:-1]    # prev 4 images
+        map_state.poses = poses[:-1]  # prev. images
         # num_map_keyframes = map.num_keyframes()
         # keyframes = map.get_keyframes()
         # if num_map_keyframes>0:
@@ -341,6 +346,7 @@ class Viewer3D(object):
 
         # points, colors
         map_state.points = points
+        map_state.colors = colors
         # map_state.colors = np.array(map_state.colors) / 256.
         # num_map_points = map.num_points()
         # if num_map_points>0:

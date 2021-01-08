@@ -13,7 +13,7 @@ def visualize(eo_file, pc_file):
         R[i] = Rot3D(EOs[i])   # Transformation *coordinate system*
 
     # Import las to numpy array
-    points = las2nparray(pc_file)
+    points, colors = las2nparray(pc_file)
     # points = points / 100
 
     pangolin.CreateWindowAndBind('Main', 640, 480)
@@ -38,8 +38,8 @@ def visualize(eo_file, pc_file):
 
         # Draw Point Cloud
         gl.glPointSize(1)
-        gl.glColor3f(1.0, 0.0, 0.0)
-        pangolin.DrawPoints(points)
+        # gl.glColor3f(1.0, 0.0, 0.0)
+        pangolin.DrawPoints(points, colors)
 
         # Draw Axes - test
         gl.glLineWidth(2)
@@ -66,4 +66,4 @@ def visualize(eo_file, pc_file):
 
 
 if __name__ == '__main__':
-    visualize(eo_file="eo.txt", pc_file="pointclouds.las")
+    visualize(eo_file="eo01.txt", pc_file="pointclouds01.las")

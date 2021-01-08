@@ -58,9 +58,6 @@ def las2nparray(file_path):
     input_las = laspy.file.File(file_path, mode="r")
     point_records = input_las.points.copy()
 
-    # TODO: read the color of points
-    #https://github.com/strawlab/python-pcl/issues/171
-
     # getting scaling and offset parameters
     las_scaleX = input_las.header.scale[0]
     las_offsetX = input_las.header.offset[0]
@@ -79,7 +76,21 @@ def las2nparray(file_path):
     points[:, 1] = p_Y
     points[:, 2] = p_Z
 
-    return points
+    # read the color of points
+    # https://github.com/strawlab/python-pcl/issues/171
+    colors = np.zeros((len(p_X), 3))
+    red = input_las.red
+    green = input_las.green
+    blue = input_las.blue
+    red = red / red.max()
+    green = green / green.max()
+    blue = blue / blue.max()
+
+    colors[:, 0] = red
+    colors[:, 1] = green
+    colors[:, 2] = blue
+
+    return points, colors
 
 
 def read_eo(eo_file):
@@ -132,8 +143,9 @@ def read_eo_list(eo_file):
 
 
 if __name__ == "__main__":
-    EOs_np = read_eo(eo_file="eo.txt")
-    EOs_list = read_eo_list(eo_file="eo.txt")
+    EOs_np = read_eo(eo_file="eo01.txt")
+    # EOs_list = read_eo_list(eo_file="eo01.txt")
+    points, colors = las2nparray(file_path="pointclouds01.las")
     print(EOs_np[0, 0])
     print(EOs_list[0][0])
     print("Done")
