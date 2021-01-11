@@ -88,15 +88,6 @@ class Viewer3D(object):
         pangolin.CreateWindowAndBind('Map Viewer', w, h)
         gl.glEnable(gl.GL_DEPTH_TEST)
 
-        # viewpoint_x1 = 412065.945071
-        # viewpoint_y1 = 460265.659708
-        # viewpoint_z1 = 99.475427 + 50
-        # viewpoint_x2 = 412138.851479
-        # viewpoint_y2 = 460393.182716
-        # viewpoint_z2 = 137.638273
-        # self.look_view = pangolin.ModelViewLookAt(viewpoint_x1, viewpoint_y1, viewpoint_z1,
-        #                                           viewpoint_x2, viewpoint_y2, 0, 0, 1, 0)
-
         viewpoint_x = 412138.851479
         viewpoint_y = 460393.182716
         viewpoint_z = 137.638273 + 500
@@ -104,12 +95,12 @@ class Viewer3D(object):
 
 
         # viewpoint_x = 0
-        # viewpoint_y = -40
-        # viewpoint_z = -80
+        # viewpoint_y = -400
+        # viewpoint_z = 0
         viewpoint_f = 1000
             
         self.proj = pangolin.ProjectionMatrix(w, h, viewpoint_f, viewpoint_f, w//2, h//2, 0.1, 5000)
-        # self.look_view = pangolin.ModelViewLookAt(viewpoint_x, viewpoint_y, viewpoint_z, 0, 0, 0, 0, -1, 0)
+        # self.look_view = pangolin.ModelViewLookAt(viewpoint_x, viewpoint_y, viewpoint_z, 0, 0, 0, 0, 0, 1)
         self.scam = pangolin.OpenGlRenderState(self.proj, self.look_view)
         self.handler = pangolin.Handler3D(self.scam)
 
@@ -390,20 +381,29 @@ class Viewer3D(object):
 
     @staticmethod
     def drawPlane(num_divs=200, div_size=10):
+        viewpoint_x = 412138.851479
+        viewpoint_y = 460393.182716
+        viewpoint_z = 137.638273 + 500
+
         # Plane parallel to x-z at origin with normal -y
-        minx = -num_divs*div_size
-        minz = -num_divs*div_size
-        maxx = num_divs*div_size
-        maxz = num_divs*div_size
+        minx = -num_divs*div_size + viewpoint_x
+        minz = -num_divs*div_size + viewpoint_y
+        maxx = num_divs*div_size + viewpoint_x
+        maxz = num_divs*div_size + viewpoint_y
+        print(minx, minz, maxx, maxz)
         #gl.glLineWidth(2)
         #gl.glColor3f(0.7,0.7,1.0)
         gl.glColor3f(0.7,0.7,0.7)
         gl.glBegin(gl.GL_LINES)
         for n in range(2*num_divs):
-            gl.glVertex3f(minx+div_size*n,0,minz)
-            gl.glVertex3f(minx+div_size*n,0,maxz)
-            gl.glVertex3f(minx,0,minz+div_size*n)
-            gl.glVertex3f(maxx,0,minz+div_size*n)
+            # gl.glVertex3f(minx+div_size*n,0,minz)
+            # gl.glVertex3f(minx+div_size*n,0,maxz)
+            # gl.glVertex3f(minx,0,minz+div_size*n)
+            # gl.glVertex3f(maxx,0,minz+div_size*n)
+            gl.glVertex3f(minx + div_size * n, minz, 0)
+            gl.glVertex3f(minx + div_size * n, maxz, 0)
+            gl.glVertex3f(minx, minz + div_size * n, 0)
+            gl.glVertex3f(maxx, minz + div_size * n, 0)
         gl.glEnd()
 
 
