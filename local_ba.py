@@ -1,6 +1,27 @@
 import Metashape
 import time
 import argparse
+import logging
+
+# 로그 생성
+logger = logging.getLogger()
+
+# 로그의 출력 기준 설정
+logger.setLevel(logging.INFO)
+
+# log 출력 형식
+# formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+formatter = logging.Formatter('%(asctime)s %(message)s')
+
+# log 출력
+stream_handler = logging.StreamHandler()
+stream_handler.setFormatter(formatter)
+logger.addHandler(stream_handler)
+
+# log를 파일에 출력
+file_handler = logging.FileHandler('my.log')
+file_handler.setFormatter(formatter)
+logger.addHandler(file_handler)
 
 
 def photoscan_alignphotos_first(images):
@@ -22,16 +43,22 @@ def photoscan_alignphotos_first(images):
         camera.reference.rotation = (gimbal_yaw, 90+gimbal_pitch, gimbal_roll)
         camera.reference.rotation_enabled = True
 
-    match_time = time.time()
+    match_start = time.time()
     chunk.matchPhotos(downscale=2)
-    print("  *** match time: ", time.time() - match_time)
-    align_time = time.time()
+    match_end = time.time() - match_start
+    print("  *** match time: ", match_end)
+    align_start = time.time()
     chunk.alignCameras(adaptive_fitting=True)
-    print("  *** align time: ", time.time() - align_time)
+    align_end = time.time() - align_start
+    print("  *** align time: ", align_end)
 
+    process_end = time.time() - start_time
     print("*************************************************************")
-    print("  *** process time of each image = ", time.time() - start_time)
+    print("  *** process time of each image = ", process_end)
     print("*************************************************************")
+
+    logger.info(images[-1] + " " + str(round(match_end, 5)) + " "
+                + str(round(align_end, 5)) + " " + str(round(process_end, 5)))
 
     chunk.crs = Metashape.CoordinateSystem("EPSG::5186")
     chunk.euler_angles = Metashape.EulerAnglesOPK
@@ -85,32 +112,44 @@ def photoscan_alignphotos_rest(images):
     # doc.save(path="rest.psz", chunks=[doc.chunk])
 
     # TODO: reset_matches, reset_alignment
+    match_start = time.time()
     chunk.matchPhotos(downscale=2)
+    match_end = time.time() - match_start
+    print("  *** match time: ", match_end)
+    align_start = time.time()
     chunk.alignCameras(adaptive_fitting=True)
+    align_end = time.time() - align_start
+    print("  *** align time: ", align_end)
 
     camera = chunk.cameras[-1]
     if not camera.transform:
         print("There is no transformation matrix")
         return
 
-    estimated_coord = chunk.crs.project(
-        chunk.transform.matrix.mulp(camera.center)) #estimated XYZ in coordinate system units
-    T = chunk.transform.matrix
-    m = chunk.crs.localframe(
-        T.mulp(camera.center))  # transformation matrix to the LSE coordinates in the given point
-    R = (m * T * camera.transform * Metashape.Matrix().Diag([1, -1, -1, 1])).rotation()
+    # estimated_coord = chunk.crs.project(
+    #     chunk.transform.matrix.mulp(camera.center)) #estimated XYZ in coordinate system units
+    # T = chunk.transform.matrix
+    # m = chunk.crs.localframe(
+    #     T.mulp(camera.center))  # transformation matrix to the LSE coordinates in the given point
+    # R = (m * T * camera.transform * Metashape.Matrix().Diag([1, -1, -1, 1])).rotation()
+    # 
+    # estimated_ypr = Metashape.utils.mat2ypr(R)  # estimated orientation angles - yaw, pitch, roll
+    # estimated_opk = Metashape.utils.mat2opk(R)  # estimated orientation angles - omega, phi, kappa
+    # 
+    # pos = list(estimated_coord)
+    # ori = list(estimated_opk)
+    # eo = [pos[0], pos[1], pos[2], ori[0], ori[1], ori[2]]
+    # print("======================================================================================================")
+    # print(images[-1], eo)
+    # print("======================================================================================================")
 
-    estimated_ypr = Metashape.utils.mat2ypr(R)  # estimated orientation angles - yaw, pitch, roll
-    estimated_opk = Metashape.utils.mat2opk(R)  # estimated orientation angles - omega, phi, kappa
+    process_end = time.time() - start_time
+    print("*************************************************************")
+    print("  *** process time of each image = ", process_end)
+    print("*************************************************************")
 
-    pos = list(estimated_coord)
-    ori = list(estimated_opk)
-    eo = [pos[0], pos[1], pos[2], ori[0], ori[1], ori[2]]
-    print("======================================================================================================")
-    print(images[-1], eo)
-    print("======================================================================================================")
-
-    print("  *** process time of each image = ", time.time() - start_time)
+    logger.info(images[-1] + " " + str(round(match_end, 5)) + " "
+                + str(round(align_end, 5)) + " " + str(round(process_end, 5)))
 
     chunk.exportReference(path="eo.txt", format=Metashape.ReferenceFormatCSV, items=Metashape.ReferenceItemsCameras,
                           columns="nuvwdefo", delimiter=",")

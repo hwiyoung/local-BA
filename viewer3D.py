@@ -390,7 +390,6 @@ class Viewer3D(object):
         minz = -num_divs*div_size + viewpoint_y
         maxx = num_divs*div_size + viewpoint_x
         maxz = num_divs*div_size + viewpoint_y
-        print(minx, minz, maxx, maxz)
         #gl.glLineWidth(2)
         #gl.glColor3f(0.7,0.7,1.0)
         gl.glColor3f(0.7,0.7,0.7)

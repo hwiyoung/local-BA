@@ -21,29 +21,31 @@ if __name__ == '__main__':
         points_stack = np.zeros((0, 3))
         colors_stack = np.zeros((0, 3))
         for eo_file, pc_file in zip(eo_files, pc_files):
-            print(eo_file)
-            # Import camera pose
-            EOs = read_eo(eo_file)
-            EOs[:, 3:] *= np.pi / 180  # deg to rad
-            poses = np.zeros(shape=(EOs.shape[0], 4, 4))
-            poses[:, -1, -1] = 1
-            for i in range(EOs.shape[0]):
-                poses[i, :3, 3] = EOs[i, 0:3].T    # translation
-                R = Rot3D(EOs[i])  # Transform *coordinate system*
-                poses[i, :3, :3] = -R.T  # rotation
-            poses_stack = np.vstack((poses_stack, poses))
-            print(poses_stack.shape)
-
-            # Import las to numpy array
-            points, colors = las2nparray(pc_file)
-            points_stack = np.vstack((points_stack, points))
-            colors_stack = np.vstack((colors_stack, colors))
-
             if not is_paused:
                 print('..................................')
+                print(eo_file)
+                # Import camera pose
+                EOs = read_eo(eo_file)
+                EOs[:, 3:] *= np.pi / 180  # deg to rad
+                poses = np.zeros(shape=(EOs.shape[0], 4, 4))
+                poses[:, -1, -1] = 1
+                for i in range(EOs.shape[0]):
+                    poses[i, :3, 3] = EOs[i, 0:3].T  # translation
+                    R = Rot3D(EOs[i])  # Transform *coordinate system*
+                    poses[i, :3, :3] = -R.T  # rotation
+                poses_stack = np.vstack((poses_stack, poses))
+                print(poses_stack.shape)
+
+                # Import las to numpy array
+                points, colors = las2nparray(pc_file)
+                points_stack = np.vstack((points_stack, points))
+                colors_stack = np.vstack((colors_stack, colors))
+
                 # 3D display (map display)
                 if viewer3D is not None:
                     viewer3D.draw_map(poses=poses_stack, points=points_stack, colors=colors_stack)
+            else:
+                time.sleep(1)
 
             if viewer3D is not None:
                 is_paused = not viewer3D.is_paused()
