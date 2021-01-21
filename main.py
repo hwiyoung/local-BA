@@ -17,7 +17,7 @@ def solve_local_ba_first(images):
         pass
     elif platform.system() == "Linux":
         command = os.path.join(os.path.expanduser("~"), "Metashape/metashape-pro/metashape.sh")
-        subprocess.run([command, "-r", "local_ba.py", "--images", images, "--method", "first"])
+        subprocess.run([command, "-r", "local_ba2.py", "--images", images, "--method", "first"])
     else:
         print("Please choose between Windows and Linux")
 
@@ -27,7 +27,7 @@ def solve_local_ba_rest(images):
         pass
     elif platform.system() == "Linux":
         command = os.path.join(os.path.expanduser("~"), "Metashape/metashape-pro/metashape.sh")
-        subprocess.run([command, "-r", "local_ba.py", "--images", images, "--method", "rest"])
+        subprocess.run([command, "-r", "local_ba2.py", "--images", images, "--method", "rest"])
     else:
         print("Please choose between Windows and Linux")
 
