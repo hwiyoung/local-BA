@@ -65,25 +65,36 @@ for i in range(len(images)):
                 solve_local_ba_first(' '.join(images_to_process))
                 viewer3D = Viewer3D()
                 # visualize(eo_file="eo.txt", pc_file="pointclouds.las")
+
+                # Import camera pose
+                EOs = read_eo(eo_file="eo.txt")
+                EOs[:, 3:] *= np.pi / 180  # deg to rad
+                poses = np.zeros(shape=(EOs.shape[0], 4, 4))
+                poses[:, -1, -1] = 1
+                for i in range(EOs.shape[0]):
+                    poses[i, :3, 3] = EOs[i, 0:3].T  # translation
+                    R = Rot3D(EOs[i])  # Transform *coordinate system*
+                    poses[i, :3, :3] = -R.T  # rotation
+                poses_stack = np.vstack((poses_stack, poses))
+                print(poses_stack.shape)
             else:
                 images_to_process.append(images[i])
                 print("else", images_to_process)
                 solve_local_ba_rest(' '.join(images_to_process))
+
+                # Import camera pose
+                EOs = read_eo(eo_file="eo.txt")
+                EOs[:, 3:] *= np.pi / 180  # deg to rad
+                poses = np.zeros(shape=(1, 4, 4))
+                poses[:, -1, -1] = 1
+                poses[0, :3, 3] = EOs[-1, 0:3].T  # translation
+                R = Rot3D(EOs[-1])  # Transform *coordinate system*
+                poses[0, :3, :3] = -R.T  # rotation
+                poses_stack = np.vstack((poses_stack, poses))
+                print(poses_stack.shape)
         except Exception as e:
             print(e)
             break
-
-        # Import camera pose
-        EOs = read_eo(eo_file="eo.txt")
-        EOs[:, 3:] *= np.pi / 180  # deg to rad
-        poses = np.zeros(shape=(EOs.shape[0], 4, 4))
-        poses[:, -1, -1] = 1
-        for i in range(EOs.shape[0]):
-            poses[i, :3, 3] = EOs[i, 0:3].T  # translation
-            R = Rot3D(EOs[i])  # Transform *coordinate system*
-            poses[i, :3, :3] = -R.T  # rotation
-        poses_stack = np.vstack((poses_stack, poses))
-        print(poses_stack.shape)
 
         # Import las to numpy array
         points, colors = las2nparray(file_path="pointclouds.las")

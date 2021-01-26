@@ -23,6 +23,31 @@ file_handler = logging.FileHandler('my.log')
 file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
 
+# logger.info("image match align psx cameras points process")
+
+
+def set_region(chunk):
+    point_cloud = chunk.point_cloud
+    points = point_cloud.points
+    projections = point_cloud.projections
+
+    npoints = len(points)
+    point_index = 0
+    for proj in projections[chunk.cameras[-1]]:
+        track_id = proj.track_id
+        while point_index < npoints and points[point_index].track_id < track_id:
+            point_index += 1
+        if point_index < npoints and points[point_index].track_id == track_id:
+            if not points[point_index].valid:
+                continue
+            else:
+                points[point_index].selected = True
+
+    point_cloud.cropSelectedPoints()
+    chunk.resetRegion()
+
+    return chunk
+
 
 def photoscan_alignphotos_first(images):
     start_time = time.time()
@@ -52,23 +77,30 @@ def photoscan_alignphotos_first(images):
     align_end = time.time() - align_start
     print("  *** align time: ", align_end)
 
-    doc.save(path="./localba.psx", chunks=[doc.chunk])
+    psx_start = time.time()
+    doc.save(path="./localba.psx", chunks=[doc.chunk])  # in EPSG::4326
 
     chunk.crs = Metashape.CoordinateSystem("EPSG::5186")
     chunk.euler_angles = Metashape.EulerAnglesOPK
+    psx_end = time.time() - psx_start
 
+    cameras_start = time.time()
     chunk.exportReference(path="eo.txt", format=Metashape.ReferenceFormatCSV, items=Metashape.ReferenceItemsCameras,
                           columns="nuvwdefo", delimiter=",")
+    cameras_end = time.time() - cameras_start
+    points_start = time.time()
     chunk.exportPoints(path="pointclouds.las", source_data=Metashape.PointCloudData, format=Metashape.PointsFormatLAS,
                        crs=Metashape.CoordinateSystem("EPSG::5186"))
+    points_end = time.time() - points_start
 
     process_end = time.time() - start_time
     print("*************************************************************")
     print("  *** process time of each image = ", process_end)
     print("*************************************************************")
 
-    logger.info(images[-1] + " " + str(round(match_end, 5)) + " "
-                + str(round(align_end, 5)) + " " + str(round(process_end, 5)))
+    logger.info(images[-1] + " " + str(round(match_end, 5)) + " " + str(round(align_end, 5))
+                + " " + str(round(psx_end, 5)) + " " + str(round(cameras_end, 5)) + " " + str(round(points_end, 5))
+                + " " + str(round(process_end, 5)))
 
 
 def photoscan_alignphotos_rest(images):
@@ -77,6 +109,7 @@ def photoscan_alignphotos_rest(images):
     images = images.split()
 
     doc = Metashape.Document()
+    # doc = Metashape.app.document
     doc.open("./localba.psx")
     chunk = doc.chunk
     chunk.addPhotos(images[-1])
@@ -89,7 +122,7 @@ def photoscan_alignphotos_rest(images):
     chunk.cameras[-1].reference.location = (
         chunk.cameras[-1].reference.location.x, chunk.cameras[-1].reference.location.y, z)
 
-    # doc.save(path="./check.psx", chunks=[doc.chunk])
+    doc.save(path="./check.psx", chunks=[doc.chunk])
 
     chunk.crs = Metashape.CoordinateSystem("EPSG::5186")
     chunk.euler_angles = Metashape.EulerAnglesOPK
@@ -125,21 +158,29 @@ def photoscan_alignphotos_rest(images):
         print("There is no transformation matrix")
         return
 
+    cameras_start = time.time()
     chunk.exportReference(path="eo.txt", format=Metashape.ReferenceFormatCSV, items=Metashape.ReferenceItemsCameras,
                           columns="nuvwdefo", delimiter=",")
+    cameras_end = time.time() - cameras_start
+    points_start = time.time()
+    chunk = set_region(chunk)
     chunk.exportPoints(path="pointclouds.las", source_data=Metashape.PointCloudData, format=Metashape.PointsFormatLAS,
                        crs=Metashape.CoordinateSystem("EPSG::5186"))
+    points_end = time.time() - points_start
 
+    psx_start = time.time()
     chunk.crs = Metashape.CoordinateSystem("EPSG::4326")
-    doc.save(path="./localba.psx", chunks=[doc.chunk])
+    doc.save(path="./localba.psx", chunks=[doc.chunk])  # in EPSG::4326
+    psx_end = time.time() - psx_start
 
     process_end = time.time() - start_time
     print("*************************************************************")
     print("  *** process time of each image = ", process_end)
     print("*************************************************************")
 
-    logger.info(images[-1] + " " + str(round(match_end, 5)) + " "
-                + str(round(align_end, 5)) + " " + str(round(process_end, 5)))
+    logger.info(images[-1] + " " + str(round(match_end, 5)) + " " + str(round(align_end, 5))
+                + " " + str(round(psx_end, 5)) + " " + str(round(cameras_end, 5)) + " " + str(round(points_end, 5))
+                + " " + str(round(process_end, 5)))
 
 
 if __name__ == '__main__':
