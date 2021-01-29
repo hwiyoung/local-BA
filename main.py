@@ -6,17 +6,17 @@ import subprocess
 import os
 import json
 import numpy as np
-from module import read_eo, Rot3D, las2nparray
+from module import read_eo, Rot3D, las2nparray, nparray2las
 from viewer3D import Viewer3D
 from visualizer import visualize
-from module import read_eo
+
+command = os.path.join(os.path.expanduser("~"), "Metashape/metashape-pro/metashape.sh")
 
 
 def solve_local_ba_first(images):
     if platform.system() == "Windows":
         pass
     elif platform.system() == "Linux":
-        command = os.path.join(os.path.expanduser("~"), "Metashape/metashape-pro/metashape.sh")
         subprocess.run([command, "-r", "local_ba2.py", "--images", images, "--method", "first"])
     else:
         print("Please choose between Windows and Linux")
@@ -26,7 +26,6 @@ def solve_local_ba_rest(images):
     if platform.system() == "Windows":
         pass
     elif platform.system() == "Linux":
-        command = os.path.join(os.path.expanduser("~"), "Metashape/metashape-pro/metashape.sh")
         subprocess.run([command, "-r", "local_ba2.py", "--images", images, "--method", "rest"])
     else:
         print("Please choose between Windows and Linux")
@@ -42,7 +41,6 @@ images = [str(x) for x in images if x.is_file()]
 images.sort()
 images_to_process = deque(maxlen=no_images_process)
 
-# viewer3D = Viewer3D()
 is_paused = False
 
 poses_stack = np.zeros(shape=(0, 4, 4))
@@ -52,8 +50,9 @@ colors_stack = np.zeros((0, 3))
 start_time = time.time()
 for i in range(len(images)):
     if not is_paused:
-        print('..................................')
-        print('image: ', images[i])
+        print('............................................')
+        print(' * image: ', images[i])
+        print('............................................')
         try:
             if i < 4:
                 images_to_process.append(images[i])
@@ -64,6 +63,7 @@ for i in range(len(images)):
                 print("i == 4", images_to_process)
                 solve_local_ba_first(' '.join(images_to_process))
                 viewer3D = Viewer3D()
+                # viewer3D = None
                 # visualize(eo_file="eo.txt", pc_file="pointclouds.las")
 
                 # Import camera pose
@@ -95,6 +95,10 @@ for i in range(len(images)):
         except Exception as e:
             print(e)
             break
+        except KeyboardInterrupt:
+            print(" *** KeyboardInterrupt!!!")
+            nparray2las(points_stack, colors_stack)
+            break
 
         # Import las to numpy array
         points, colors = las2nparray(file_path="pointclouds.las")
@@ -111,7 +115,7 @@ for i in range(len(images)):
         is_paused = not viewer3D.is_paused()
 
     # time.sleep(1)
-
+nparray2las(points_stack, colors_stack)
 print("==============================================")
 print(" *** Elapsed time: %.2f" % (time.time() - start_time))
 print("==============================================")

@@ -60,8 +60,6 @@ def las2nparray(file_path):
     input_las = laspy.file.File(file_path, mode="r")
     point_records = input_las.points.copy()
 
-    # TODO: read the color of points
-
     # getting scaling and offset parameters
     las_scaleX = input_las.header.scale[0]
     las_offsetX = input_las.header.offset[0]
@@ -80,7 +78,40 @@ def las2nparray(file_path):
     points[:, 1] = p_Y
     points[:, 2] = p_Z
 
-    return points
+    # read the color of points
+    # https://github.com/strawlab/python-pcl/issues/171
+    colors = np.zeros((len(p_X), 3))
+    red = input_las.red
+    green = input_las.green
+    blue = input_las.blue
+    red = red / red.max()
+    green = green / green.max()
+    blue = blue / blue.max()
+
+    colors[:, 0] = red
+    colors[:, 1] = green
+    colors[:, 2] = blue
+
+    return points, colors
+
+
+# https://github.com/laspy/laspy/commit/4dba4c846eacf119b5e99ccf8ccae73735ef1944
+def nparray2las(points, colors):
+    header = laspy.header.Header(file_version=1.2, point_format=2)
+    outfile = laspy.file.File("output.las", mode="w", header=header)
+    outfile.header.offset = np.min(points, axis=0)
+    outfile.header.scale = [0.001, 0.001, 0.001]
+    outfile.x = points[:, 0]
+    outfile.y = points[:, 1]
+    outfile.z = points[:, 2]
+
+    # np.array(red / red.max() * 256, dtype=np.int)
+    outfile.Red = np.uint8(colors[:, 0] * 256)
+    outfile.Green = np.uint8(colors[:, 1] * 256)
+    outfile.Blue = np.uint8(colors[:, 2] * 256)
+    # outfile.Intensity = i
+    # outfile.classification = labels
+    outfile.close()
 
 
 def main():
@@ -93,8 +124,9 @@ def main():
 
 
     # Import las to numpy array
-    points = las2nparray("../pointclouds.las")
-    # points = points / 100
+    points, colors = las2nparray("../pointclouds.las")
+    nparray2las(points, colors)
+    points_test, colors_test = las2nparray("output.las")
 
     pangolin.CreateWindowAndBind('Main', 640, 480)
     gl.glEnable(gl.GL_DEPTH_TEST)

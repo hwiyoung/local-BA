@@ -23,9 +23,9 @@ file_handler = logging.FileHandler('my.log')
 file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
 
-# logger.info("image match align psx cameras points process")
+# logger.info("image load add eo import accuracy match align cameras points save process")
 
-
+# https://www.agisoft.com/forum/index.php?topic=4669.0
 def set_region(chunk):
     point_cloud = chunk.point_cloud
     points = point_cloud.points
@@ -54,8 +54,13 @@ def photoscan_alignphotos_first(images):
 
     images = images.split()
     doc = Metashape.Document()
+
+    add_start = time.time()
     chunk = doc.addChunk()
     chunk.addPhotos(images)
+    add_end = time.time() - add_start
+
+    eo_start = time.time()
     for camera in chunk.cameras:
         if not camera.reference.location:
             continue
@@ -67,22 +72,24 @@ def photoscan_alignphotos_first(images):
         gimbal_yaw = float(camera.photo.meta["DJI/GimbalYawDegree"])
         camera.reference.rotation = (gimbal_yaw, 90+gimbal_pitch, gimbal_roll)
         camera.reference.rotation_enabled = True
+    eo_end = time.time() - eo_start
 
     match_start = time.time()
     chunk.matchPhotos(downscale=2, keep_keypoints=True)
     match_end = time.time() - match_start
     print("  *** match time: ", match_end)
+
     align_start = time.time()
     chunk.alignCameras(adaptive_fitting=True)
     align_end = time.time() - align_start
     print("  *** align time: ", align_end)
 
-    psx_start = time.time()
+    save_start = time.time()
     doc.save(path="./localba.psx", chunks=[doc.chunk])  # in EPSG::4326
 
     chunk.crs = Metashape.CoordinateSystem("EPSG::5186")
     chunk.euler_angles = Metashape.EulerAnglesOPK
-    psx_end = time.time() - psx_start
+    save_end = time.time() - save_start
 
     cameras_start = time.time()
     chunk.exportReference(path="eo.txt", format=Metashape.ReferenceFormatCSV, items=Metashape.ReferenceItemsCameras,
@@ -98,8 +105,9 @@ def photoscan_alignphotos_first(images):
     print("  *** process time of each image = ", process_end)
     print("*************************************************************")
 
-    logger.info(images[-1] + " " + str(round(match_end, 5)) + " " + str(round(align_end, 5))
-                + " " + str(round(psx_end, 5)) + " " + str(round(cameras_end, 5)) + " " + str(round(points_end, 5))
+    logger.info(images[-1] + " " + str(0) + " " + str(round(add_end, 5)) + " " + str(round(eo_end, 5))
+                + " " + str(0) + " " + str(0) + " " + str(round(match_end, 5)) + " " + str(round(align_end, 5))
+                + " " + str(round(cameras_end, 5)) + " " + str(round(points_end, 5)) + " " + str(round(save_end, 5))
                 + " " + str(round(process_end, 5)))
 
 
@@ -108,12 +116,17 @@ def photoscan_alignphotos_rest(images):
 
     images = images.split()
 
+    load_start = time.time()
     doc = Metashape.Document()
-    # doc = Metashape.app.document
     doc.open("./localba.psx")
+    load_end = time.time() - load_start
+
+    add_start = time.time()
     chunk = doc.chunk
     chunk.addPhotos(images[-1])
+    add_end = time.time() - add_start
 
+    eo_start = time.time()
     in_crs = Metashape.CoordinateSystem("EPSG::4326")
     out_crs = Metashape.CoordinateSystem("EPSG::5186")
     chunk.cameras[-1].reference.location = \
@@ -121,22 +134,26 @@ def photoscan_alignphotos_rest(images):
     z = float(chunk.cameras[-1].photo.meta["DJI/RelativeAltitude"])
     chunk.cameras[-1].reference.location = (
         chunk.cameras[-1].reference.location.x, chunk.cameras[-1].reference.location.y, z)
+    eo_end = time.time() - eo_start
 
-    doc.save(path="./check.psx", chunks=[doc.chunk])
+    # doc.save(path="./check.psx", chunks=[doc.chunk])
 
+    import_start = time.time()
     chunk.crs = Metashape.CoordinateSystem("EPSG::5186")
     chunk.euler_angles = Metashape.EulerAnglesOPK
-
     chunk.importReference(path="eo.txt", format=Metashape.ReferenceFormatCSV, columns="nxyzabco",
                           delimiter=",", skip_rows=2)
+    import_end = time.time() - import_start
 
+    accuracy_start = time.time()
     # fist 4 images
     chunk.camera_location_accuracy = Metashape.Vector([0.001, 0.001, 0.001])
     chunk.camera_rotation_accuracy = Metashape.Vector([0.01, 0.01, 0.01])
     # last image
     chunk.cameras[-1].reference.accuracy = Metashape.Vector([10, 10, 10])
+    accuarcy_end = time.time() - accuracy_start
 
-    doc.save(path="./check2.psx", chunks=[doc.chunk])
+    # doc.save(path="./check2.psx", chunks=[doc.chunk])
 
     # # TODO: ypr to opk
     # gimbal_roll = float(chunk.cameras[-1].photo.meta["DJI/GimbalRollDegree"])
@@ -148,6 +165,7 @@ def photoscan_alignphotos_rest(images):
     chunk.matchPhotos(downscale=2, keep_keypoints=True, reset_matches=False)
     match_end = time.time() - match_start
     print("  *** match time: ", match_end)
+
     align_start = time.time()
     chunk.alignCameras(adaptive_fitting=True, reset_alignment=False)
     align_end = time.time() - align_start
@@ -168,19 +186,20 @@ def photoscan_alignphotos_rest(images):
                        crs=Metashape.CoordinateSystem("EPSG::5186"))
     points_end = time.time() - points_start
 
-    psx_start = time.time()
+    save_start = time.time()
     chunk.crs = Metashape.CoordinateSystem("EPSG::4326")
     doc.save(path="./localba.psx", chunks=[doc.chunk])  # in EPSG::4326
-    psx_end = time.time() - psx_start
+    save_end = time.time() - save_start
 
     process_end = time.time() - start_time
     print("*************************************************************")
     print("  *** process time of each image = ", process_end)
     print("*************************************************************")
 
-    logger.info(images[-1] + " " + str(round(match_end, 5)) + " " + str(round(align_end, 5))
-                + " " + str(round(psx_end, 5)) + " " + str(round(cameras_end, 5)) + " " + str(round(points_end, 5))
-                + " " + str(round(process_end, 5)))
+    logger.info(images[-1] + " " + str(round(load_end, 5)) + " " + str(round(add_end, 5))
+                + " " + str(round(eo_end, 5)) + " " + str(round(import_end, 5)) + " " + str(round(accuarcy_end, 5))
+                + " " + str(round(match_end, 5)) + " " + str(round(align_end, 5)) + " " + str(round(cameras_end, 5))
+                + " " + str(round(points_end, 5)) + " " + str(round(save_end, 5)) + " " + str(round(process_end, 5)))
 
 
 if __name__ == '__main__':

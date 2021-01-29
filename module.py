@@ -93,6 +93,28 @@ def las2nparray(file_path):
     return points, colors
 
 
+# https://github.com/laspy/laspy/commit/4dba4c846eacf119b5e99ccf8ccae73735ef1944
+# https://pointly.ai/how-to-convert-your-point-cloud-data-into-las-laz/
+def nparray2las(points, colors):
+    header = laspy.header.Header(file_version=1.2, point_format=2)
+    outfile = laspy.file.File("output.las", mode="w", header=header)
+
+    outfile.header.offset = np.min(points, axis=0)
+    outfile.header.scale = [0.001, 0.001, 0.001]
+
+    outfile.x = points[:, 0]
+    outfile.y = points[:, 1]
+    outfile.z = points[:, 2]
+
+    outfile.Red = np.uint8(colors[:, 0] * 256)
+    outfile.Green = np.uint8(colors[:, 1] * 256)
+    outfile.Blue = np.uint8(colors[:, 2] * 256)
+    # outfile.Intensity = i
+    # outfile.classification = labels
+    outfile.close()
+    print(" *** Write LAS!!!")
+
+
 def read_eo(eo_file):
     print("=======================")
     print(" * Read EOs from a file")
