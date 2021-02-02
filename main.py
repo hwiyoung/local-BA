@@ -62,8 +62,8 @@ for i in range(len(images)):
                 images_to_process.append(images[i])
                 print("i == 4", images_to_process)
                 solve_local_ba_first(' '.join(images_to_process))
-                viewer3D = Viewer3D()
-                # viewer3D = None
+                # viewer3D = Viewer3D()
+                viewer3D = None
                 # visualize(eo_file="eo.txt", pc_file="pointclouds.las")
 
                 # Import camera pose

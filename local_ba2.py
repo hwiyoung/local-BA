@@ -68,6 +68,8 @@ def photoscan_alignphotos_first(images):
             z = float(camera.photo.meta["DJI/RelativeAltitude"])
             camera.reference.location = (camera.reference.location.x, camera.reference.location.y, z)
         gimbal_roll = float(camera.photo.meta["DJI/GimbalRollDegree"])
+        if 180 - abs(gimbal_roll) <= 0.1:
+            gimbal_roll = 0
         gimbal_pitch = float(camera.photo.meta["DJI/GimbalPitchDegree"])
         gimbal_yaw = float(camera.photo.meta["DJI/GimbalYawDegree"])
         camera.reference.rotation = (gimbal_yaw, 90+gimbal_pitch, gimbal_roll)
