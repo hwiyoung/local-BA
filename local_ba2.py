@@ -125,6 +125,7 @@ def photoscan_alignphotos_rest(images):
 
     add_start = time.time()
     chunk = doc.chunk
+    chunk.remove(chunk.cameras[:-4])
     chunk.addPhotos(images[-1])
     add_end = time.time() - add_start
 
@@ -149,8 +150,13 @@ def photoscan_alignphotos_rest(images):
 
     accuracy_start = time.time()
     # fist 4 images
-    chunk.camera_location_accuracy = Metashape.Vector([0.001, 0.001, 0.001])
+    # chunk.camera_location_accuracy = Metashape.Vector([0.001, 0.001, 0.001])
     chunk.camera_rotation_accuracy = Metashape.Vector([0.01, 0.01, 0.01])
+    chunk.cameras[0].reference.accuracy = Metashape.Vector([0.001, 0.001, 0.001])
+    chunk.cameras[1].reference.accuracy = Metashape.Vector([0.001, 0.001, 0.001])
+    chunk.cameras[2].reference.accuracy = Metashape.Vector([0.001, 0.001, 0.001])
+    chunk.cameras[3].reference.accuracy = Metashape.Vector([0.001, 0.001, 0.001])
+
     # last image
     chunk.cameras[-1].reference.accuracy = Metashape.Vector([10, 10, 10])
     accuarcy_end = time.time() - accuracy_start
@@ -176,6 +182,10 @@ def photoscan_alignphotos_rest(images):
     camera = chunk.cameras[-1]
     if not camera.transform:
         print("There is no transformation matrix")
+        save_start = time.time()
+        chunk.crs = Metashape.CoordinateSystem("EPSG::4326")
+        doc.save(path="./localba.psx", chunks=[doc.chunk])  # in EPSG::4326
+        save_end = time.time() - save_start
         return
 
     cameras_start = time.time()
