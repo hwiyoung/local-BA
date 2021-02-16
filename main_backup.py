@@ -1,14 +1,35 @@
 from pathlib import Path
 import time
 from collections import deque
-from local_ba3 import solve_local_ba_first, solve_local_ba_rest
+import platform
+import subprocess
+import os
 import json
 import numpy as np
 from module import read_eo, Rot3D, las2nparray, nparray2las
-import Metashape
-# from viewer3D import Viewer3D
+from viewer3D import Viewer3D
+from visualizer import visualize
 
-Metashape.app.gpu_mask = 1
+command = os.path.join(os.path.expanduser("~"), "Metashape/metashape-pro/metashape.sh")
+
+
+def solve_local_ba_first(images):
+    if platform.system() == "Windows":
+        pass
+    elif platform.system() == "Linux":
+        subprocess.run([command, "-r", "local_ba2.py", "--images", images, "--method", "first"])
+    else:
+        print("Please choose between Windows and Linux")
+
+
+def solve_local_ba_rest(images):
+    if platform.system() == "Windows":
+        pass
+    elif platform.system() == "Linux":
+        subprocess.run([command, "-r", "local_ba2.py", "--images", images, "--method", "rest"])
+    else:
+        print("Please choose between Windows and Linux")
+
 
 with open("config.json") as f:
     data = json.load(f)
@@ -43,6 +64,7 @@ for i in range(len(images)):
                 solve_local_ba_first(' '.join(images_to_process))
                 # viewer3D = Viewer3D()
                 viewer3D = None
+                # visualize(eo_file="eo.txt", pc_file="pointclouds.las")
 
                 # Import camera pose
                 EOs = read_eo(eo_file="eo.txt")
