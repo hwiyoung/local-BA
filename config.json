@@ -1,4 +1,5 @@
 {
   "no_images_process": 5,
-  "image_path" : "../00_data/sample_dji2_ext"
+  "image_path": "../00_data/sample_dji2_ext",
+  "extension": "JPG"
 }
