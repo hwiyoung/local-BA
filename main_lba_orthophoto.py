@@ -2,8 +2,11 @@ from pathlib import Path
 import time
 from collections import deque
 from georeferencing import georeferencing
+from dem import generate_dem
+from rectification import *
 import json
 import numpy as np
+import cv2
 from module import read_eo, Rot3D, las2nparray, nparray2las
 import Metashape
 
@@ -29,6 +32,7 @@ for i in range(len(images)):
     print('=' * 30)
     print(' * image: ', images[i].split("/")[-1])
     print('=' * 30)
+    dst = './' + images[i].split("/")[-1].split(".")[0]
     try:
         images_to_process.append(images[i])
         ### 1. Georeferencing
@@ -39,15 +43,21 @@ for i in range(len(images)):
             print(eo, focal_length, pixel_size, center_z, gsd)
         else:
             print(eo, focal_length, pixel_size, center_z, 0)
+            continue
 
         ### 2. DEM processing
-        # dem = process_dem(point_cloud, gsd)
+        dem_x, dem_y, dem_z, bbox = generate_dem("pointclouds.las", gsd)
 
         ### 3. Geodata generation
-        # b, g, r, a = rectify_dem_parallel(dem, boundary_rows, boundary_cols, gsd, eo, R, focal_length, pixel_size, image)
+        boundary_rows = dem_x.shape[0]
+        boundary_cols = dem_x.shape[1]
+        image = cv2.imread(images[i], -1)
+        b, g, r, a = rectify_dem_parallel(dem_x, dem_y, dem_z, boundary_rows, boundary_cols,
+                                          eo, R, focal_length, pixel_size, image)
 
         ### (4. Write the Orthophoto)
         # createGeoTiff(b, g, r, a, bbox, gsd, boundary_rows, boundary_cols, dst)
+        create_pnga_optical(b, g, r, a, bbox, gsd, 5186, dst)  # for test
     except Exception as e:
         print(e)
         break
