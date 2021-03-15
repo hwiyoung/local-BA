@@ -94,6 +94,7 @@ def solve_local_ba_first(images):
     pixel_size = chunk.sensors[0].pixel_width / 1000    # unit: m
     # Set region for the last image
     set_region(chunk)
+    # https://www.agisoft.com/forum/index.php?topic=3848.0
     center_z = list(chunk.crs.project(chunk.transform.matrix.mulp(chunk.region.center)))[-1]
 
     cameras_start = time.time()
@@ -208,6 +209,7 @@ def solve_local_ba_rest(images):
     pixel_size = chunk.sensors[0].pixel_width / 1000  # unit: m
     # Set region for the last image
     set_region(chunk)
+    # https://www.agisoft.com/forum/index.php?topic=3848.0
     center_z = list(chunk.crs.project(chunk.transform.matrix.mulp(chunk.region.center)))[-1]
 
     cameras_start = time.time()

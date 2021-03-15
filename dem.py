@@ -1,4 +1,3 @@
-from module import read_eo, Rot3D, las2nparray
 import laspy
 import CSF
 import numpy as np
@@ -50,22 +49,26 @@ def generate_dem(point_clouds, gsd):
     # 2. Denoising
 
     # 3. Ground filtering
+    csf_start = time.time()
     filtered_xyz, ground = cloth_simulation_filtering(xyz)
     print("No. filtered points:", len(filtered_xyz))
+    print(f"Ground filetering: {time.time() - csf_start:.2f} sec")
 
     outFile = laspy.file.File(r"ground.las", mode='w', header=inFile.header)
     outFile.points = points[ground]  # extract ground points, and save it to a las file.
     outFile.close()  # do not forget this
 
     # 4. Interpolation
+    interpolation_start = time.time()
     grid_x, grid_y, grid_z, bbox = interpolate_dem(filtered_xyz, gsd)
-    print("Elpased:", time.time() - start)
+    print(f"Interpolation: {time.time() - interpolation_start:.2f} sec")
+    print(f"Elpased time: {time.time() - start:.2f} sec")
 
-    # import matplotlib.pyplot as plt
-    # plt.imshow(grid_z.T)
-    # plt.show()
+    import matplotlib.pyplot as plt
+    plt.imshow(grid_z)
+    plt.show()
 
     return grid_x, grid_y, grid_z, bbox
 
 if __name__ == "__main__":
-    generate_dem("pointclouds.las", 0.1)
+    generate_dem("pointclouds.las", 0.03)
