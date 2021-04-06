@@ -1,7 +1,7 @@
 from pathlib import Path
 import time
 from collections import deque
-from georeferencing import georeferencing
+from georeferencing import *
 from dem import generate_dem
 from rectification import *
 import json
@@ -15,26 +15,21 @@ from rich.table import Table
 console = Console()
 
 import logging
-# 로그 생성
+# Construct log
 logger = logging.getLogger()
-
-# 로그의 출력 기준 설정
+# Set the criteria of log
 logger.setLevel(logging.INFO)
-
-# log 출력 형식
+# Set log format
 # formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 formatter = logging.Formatter('%(asctime)s %(message)s')
-
-# log 출력
+# StreamHandler log
 stream_handler = logging.StreamHandler()
 stream_handler.setFormatter(formatter)
 logger.addHandler(stream_handler)
-
-# log를 파일에 출력
+# FileHandler log
 file_handler = logging.FileHandler('my.log')
 file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
-
 
 Metashape.app.gpu_mask = 1  # Set the number of gpus
 
@@ -43,6 +38,8 @@ with open("config.json") as f:
 no_images_process = data["no_images_process"]
 image_path = data["image_path"]
 extension = data["extension"]
+types = data["types"]     # fixed, nonfixed-initial, nonfixed-estimated
+epsg = data["epsg"]
 
 images = Path(image_path).glob('*.' + extension)
 images = [str(x) for x in images if x.is_file()]
@@ -55,26 +52,47 @@ colors_stack = np.zeros((0, 3))
 
 start_time = time.time()
 for i in range(len(images)):
-    print('=' * 30)
     name = images[i].split("/")[-1]
-    print(' * image: ', name)
-    print('=' * 30)
     dst = './' + images[i].split("/")[-1].split(".")[0]
+    table = Table(show_header=True, header_style="bold magenta")
+    table.add_column("Image", style="dim")
+    table.add_column("Output", style="dim")
+    table.add_row(name, dst)
+    console.print(table)
     try:
-        images_to_process.append(images[i])
         ### 1. Georeferencing
-        georef_start = time.time()
-        eo, focal_length, pixel_size, center_z = georeferencing(' '.join(images_to_process), no_images_process, i)
-        if not focal_length == 0:
-            R = Rot3D(eo * np.pi / 180)
-            gsd = (pixel_size * (eo[2] - center_z)) / focal_length
-            console.print(f"EOP: {eo[0]:.2f} | {eo[1]:.2f} | {eo[2]:.2f} | {eo[3]:.2f} | {eo[4]:.2f} | {eo[5]:.2f}\n"
-                          f"Focal Length: {focal_length * 1000:.2f} mm, Pixel Size: {pixel_size * 1000000:.2f} um/px,"
-                          f" Z of center: {center_z:.2f} m, GSD: {gsd * 100:.2f} cm/px",
-                          style="blink bold red underline")
+        if i < no_images_process - 1:
+            images_to_process.append(images[i])
+            georef_start = time.time()
+            # solve_direct_georeferencing
+            eo, focal_length, pixel_size, center_z = solve_direct_georeferencing(' '.join(images_to_process), epsg)
+        elif i == no_images_process - 1:
+            georef_start = time.time()
+            # solve_lba_init_uni
+            eo, focal_length, pixel_size, center_z = solve_lba_init_uni(' '.join(images_to_process), epsg)
+        elif i > no_images_process - 1 and types == "fixed":
+            georef_start = time.time()
+            # solve_lba_esti_div
+            eo, focal_length, pixel_size, center_z = solve_lba_esti_div(' '.join(images_to_process), epsg)
+        elif i > no_images_process - 1 and types == "nonfixed-initial":
+            georef_start = time.time()
+            # solve_lba_init_uni
+            eo, focal_length, pixel_size, center_z = solve_lba_init_uni(' '.join(images_to_process), epsg)
+        elif i > no_images_process - 1 and types == "nonfixed-estimated":
+            georef_start = time.time()
+            # solve_lba_esti_uni
+            eo, focal_length, pixel_size, center_z = solve_lba_esti_uni(' '.join(images_to_process), epsg)
         else:
-            print(eo, focal_length, pixel_size, center_z, 0)
+            console.print(f"Which type of processing you have?", style="blink bold red underline")
             continue
+
+        R = Rot3D(eo * np.pi / 180)
+        gsd = (pixel_size * (eo[2] - center_z)) / focal_length
+        console.print(f"EOP: {eo[0]:.2f} | {eo[1]:.2f} | {eo[2]:.2f} | {eo[3]:.2f} | {eo[4]:.2f} | {eo[5]:.2f}\n"
+                      f"Focal Length: {focal_length * 1000:.2f} mm, Pixel Size: {pixel_size * 1000000:.2f} um/px,"
+                      f" Z of center: {center_z:.2f} m, GSD: {gsd * 100:.2f} cm/px",
+                      style="blink bold red underline")
+
         georef_time = time.time() - georef_start
         console.print(f"Georeferencing time: {georef_time:.2f} sec", style="blink bold red underline")
 
@@ -132,7 +150,6 @@ for i in range(len(images)):
     points, colors = las2nparray(file_path="pointclouds.las")
     points_stack = np.vstack((points_stack, points))
     colors_stack = np.vstack((colors_stack, colors))
-
 
 nparray2las(points_stack, colors_stack)
 print("==============================================")

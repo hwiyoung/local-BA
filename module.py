@@ -139,35 +139,8 @@ def read_eo(eo_file):
     return EOs
 
 
-def read_eo_list(eo_file):
-    print("=====================================")
-    print(" * Read EOs, list type from a file")
-    print("=====================================")
-
-    f = open(eo_file, 'r')
-    next(f)
-    next(f)
-    lines = f.readlines()
-    f.close()
-
-    EOs = []
-    for i in range(len(lines)):
-        params = lines[i].split("\t")
-        x = float(params[1])  # m
-        y = float(params[2])  # m
-        z = float(params[3])  # m
-        o = float(params[4])  # deg
-        p = float(params[5])  # deg
-        k = float(params[6])  # deg
-        EOs.append([x, y, z, o, p, k])
-
-    return EOs
-
-
 if __name__ == "__main__":
     EOs_np = read_eo(eo_file="eo01.txt")
-    # EOs_list = read_eo_list(eo_file="eo01.txt")
     points, colors = las2nparray(file_path="pointclouds01.las")
     print(EOs_np[0, 0])
-    print(EOs_list[0][0])
     print("Done")
