@@ -64,9 +64,9 @@ def generate_dem(point_clouds, gsd):
     print(f"Interpolation: {time.time() - interpolation_start:.2f} sec")
     print(f"Elpased time: {time.time() - start:.2f} sec")
 
-    import matplotlib.pyplot as plt
-    plt.imshow(grid_z)
-    plt.show()
+    # import matplotlib.pyplot as plt
+    # plt.imshow(grid_z)
+    # plt.show()
 
     return grid_x, grid_y, grid_z, bbox
 

@@ -2,6 +2,7 @@
   "no_images_process": 5,
   "image_path": "../00_data/sample_dji2_ext",
   "extension": "JPG",
-  "types": "nonfixed-initial",
-  "epsg": 5186
+  "types": "nonfixed-estimated",
+  "epsg": 5186,
+  "downscale": 2
 }

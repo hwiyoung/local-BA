@@ -7,7 +7,7 @@ from rectification import *
 import json
 import numpy as np
 import cv2
-from module import read_eo, Rot3D, las2nparray, nparray2las
+from module import Rot3D, las2nparray, nparray2las
 import Metashape
 from rich.console import Console
 from rich.table import Table
@@ -40,6 +40,8 @@ image_path = data["image_path"]
 extension = data["extension"]
 types = data["types"]     # fixed, nonfixed-initial, nonfixed-estimated
 epsg = data["epsg"]
+# https://www.agisoft.com/forum/index.php?topic=11697.msg52465#msg52465
+downscale = data["downscale"]   #  Image alignment accuracy - 0, 1, 2, 4, 8
 
 images = Path(image_path).glob('*.' + extension)
 images = [str(x) for x in images if x.is_file()]
@@ -57,37 +59,41 @@ for i in range(len(images)):
     table = Table(show_header=True, header_style="bold magenta")
     table.add_column("Image", style="dim")
     table.add_column("Output", style="dim")
-    table.add_row(name, dst)
-    console.print(table)
+    # table.add_row(name, dst)
+    # console.print(table)
     try:
         ### 1. Georeferencing
+        georef_start = time.time()
+        images_to_process.append(images[i])
+        image = ' '.join(images_to_process)
+        table.add_row(image, dst)
+        console.print(table)
         if i < no_images_process - 1:
-            images_to_process.append(images[i])
-            georef_start = time.time()
             # solve_direct_georeferencing
-            eo, focal_length, pixel_size, center_z = solve_direct_georeferencing(' '.join(images_to_process), epsg)
+            eo, focal_length, pixel_size, center_z = solve_direct_georeferencing(image, epsg)
+            continue    # test ... delete later
         elif i == no_images_process - 1:
-            georef_start = time.time()
             # solve_lba_init_uni
-            eo, focal_length, pixel_size, center_z = solve_lba_init_uni(' '.join(images_to_process), epsg)
+            eo, focal_length, pixel_size, center_z = solve_lba_init_uni(image, epsg, downscale)
         elif i > no_images_process - 1 and types == "fixed":
-            georef_start = time.time()
             # solve_lba_esti_div
-            eo, focal_length, pixel_size, center_z = solve_lba_esti_div(' '.join(images_to_process), epsg)
+            console.print(f"solve_lba_esti_div", style="blink bold red underline")
+            eo, focal_length, pixel_size, center_z = solve_lba_esti_div(image, epsg, downscale)
         elif i > no_images_process - 1 and types == "nonfixed-initial":
-            georef_start = time.time()
             # solve_lba_init_uni
-            eo, focal_length, pixel_size, center_z = solve_lba_init_uni(' '.join(images_to_process), epsg)
+            console.print(f"solve_lba_init_uni", style="blink bold red underline")
+            eo, focal_length, pixel_size, center_z = solve_lba_init_uni(image, epsg, downscale)
         elif i > no_images_process - 1 and types == "nonfixed-estimated":
-            georef_start = time.time()
             # solve_lba_esti_uni
-            eo, focal_length, pixel_size, center_z = solve_lba_esti_uni(' '.join(images_to_process), epsg)
+            console.print(f"solve_lba_esti_uni", style="blink bold red underline")
+            eo, focal_length, pixel_size, center_z = solve_lba_esti_uni(image, epsg, downscale)
         else:
             console.print(f"Which type of processing you have?", style="blink bold red underline")
             continue
 
         R = Rot3D(eo * np.pi / 180)
         gsd = (pixel_size * (eo[2] - center_z)) / focal_length
+        gsd = 0.1   # test ... delete later
         console.print(f"EOP: {eo[0]:.2f} | {eo[1]:.2f} | {eo[2]:.2f} | {eo[3]:.2f} | {eo[4]:.2f} | {eo[5]:.2f}\n"
                       f"Focal Length: {focal_length * 1000:.2f} mm, Pixel Size: {pixel_size * 1000000:.2f} um/px,"
                       f" Z of center: {center_z:.2f} m, GSD: {gsd * 100:.2f} cm/px",
@@ -146,10 +152,11 @@ for i in range(len(images)):
         nparray2las(points_stack, colors_stack)
         break
 
-    # Import las to numpy array
-    points, colors = las2nparray(file_path="pointclouds.las")
-    points_stack = np.vstack((points_stack, points))
-    colors_stack = np.vstack((colors_stack, colors))
+    if i > no_images_process - 1:
+        # Import las to numpy array
+        points, colors = las2nparray(file_path="pointclouds.las")
+        points_stack = np.vstack((points_stack, points))
+        colors_stack = np.vstack((colors_stack, colors))
 
 nparray2las(points_stack, colors_stack)
 print("==============================================")
