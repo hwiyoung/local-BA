@@ -1,7 +1,69 @@
 import numpy as np
 from numba import jit, prange
-# from osgeo import gdal, osr
 import cv2
+
+
+@jit(nopython=True, parallel=True)
+def rectify_plane_parallel(boundary, boundary_rows, boundary_cols, gsd, eo, ground_height, R, focal_length, pixel_size, image):
+    # 1. projection
+    proj_coords_x = 0.
+    proj_coords_y = 0.
+    proj_coords_z = 0.
+
+    # 2. back-projection
+    coord_CCS_m_x = 0.
+    coord_CCS_m_y = 0.
+    coord_CCS_m_z = 0.
+    plane_coord_CCS_x = 0.
+    plane_coord_CCS_y = 0.
+    coord_CCS_px_x = 0.
+    coord_CCS_px_y = 0.
+
+    # 3. resample
+    coord_ICS_col = 0
+    coord_ICS_row = 0
+    # Define channels of an orthophoto
+    b = np.zeros(shape=(boundary_rows, boundary_cols), dtype=np.uint8)
+    g = np.zeros(shape=(boundary_rows, boundary_cols), dtype=np.uint8)
+    r = np.zeros(shape=(boundary_rows, boundary_cols), dtype=np.uint8)
+    a = np.zeros(shape=(boundary_rows, boundary_cols), dtype=np.uint8)
+
+    for row in prange(boundary_rows):
+        for col in range(boundary_cols):
+            # 1. projection
+            proj_coords_x = boundary[0, 0] + col * gsd - eo[0]
+            proj_coords_y = boundary[3, 0] - row * gsd - eo[1]
+            proj_coords_z = ground_height - eo[2]
+
+            # 2. back-projection - unit: m
+            coord_CCS_m_x = R[0, 0] * proj_coords_x + R[0, 1] * proj_coords_y + R[0, 2] * proj_coords_z
+            coord_CCS_m_y = R[1, 0] * proj_coords_x + R[1, 1] * proj_coords_y + R[1, 2] * proj_coords_z
+            coord_CCS_m_z = R[2, 0] * proj_coords_x + R[2, 1] * proj_coords_y + R[2, 2] * proj_coords_z
+
+            scale = (coord_CCS_m_z) / (-focal_length)  # scalar
+            plane_coord_CCS_x = coord_CCS_m_x / scale
+            plane_coord_CCS_y = coord_CCS_m_y / scale
+
+            # Convert CCS to Pixel Coordinate System - unit: px
+            coord_CCS_px_x = plane_coord_CCS_x / pixel_size
+            coord_CCS_px_y = -plane_coord_CCS_y / pixel_size
+
+            # 3. resample
+            # Nearest Neighbor
+            coord_ICS_col = int(image.shape[1] / 2 + coord_CCS_px_x)  # column
+            coord_ICS_row = int(image.shape[0] / 2 + coord_CCS_px_y)  # row
+
+            if coord_ICS_col < 0 or coord_ICS_col >= image.shape[1]:      # column
+                continue
+            elif coord_ICS_row < 0 or coord_ICS_row >= image.shape[0]:    # row
+                continue
+            else:
+                b[row, col] = image[coord_ICS_row, coord_ICS_col][0]
+                g[row, col] = image[coord_ICS_row, coord_ICS_col][1]
+                r[row, col] = image[coord_ICS_row, coord_ICS_col][2]
+                a[row, col] = 255
+
+    return b, g, r, a
 
 
 @jit(nopython=True, parallel=True)
@@ -65,28 +127,6 @@ def rectify_dem_parallel(dem_x, dem_y, dem_z, boundary_rows, boundary_cols, eo, 
                 a[row, col] = 255
 
     return b, g, r, a
-
-
-def createGeoTiff(b, g, r, a, boundary, gsd, rows, cols, dst):
-    # https://stackoverflow.com/questions/33537599/how-do-i-write-create-a-geotiff-rgb-image-file-in-python
-    geotransform = (boundary[0], gsd, 0, boundary[3], 0, -gsd)
-
-    # create the 4-band(RGB+Alpha) raster file
-    dst_ds = gdal.GetDriverByName('GTiff').Create(dst + '.tif', cols, rows, 4, gdal.GDT_Byte)
-    dst_ds.SetGeoTransform(geotransform)  # specify coords
-
-    # Define the TM central coordinate system (EPSG 5186)
-    srs = osr.SpatialReference()  # establish encoding
-    srs.ImportFromEPSG(5186)
-
-    dst_ds.SetProjection(srs.ExportToWkt())  # export coords to file
-    dst_ds.GetRasterBand(1).WriteArray(r)  # write r-band to the raster
-    dst_ds.GetRasterBand(2).WriteArray(g)  # write g-band to the raster
-    dst_ds.GetRasterBand(3).WriteArray(b)  # write b-band to the raster
-    dst_ds.GetRasterBand(4).WriteArray(a)  # write a-band to the raster
-
-    dst_ds.FlushCache()  # write to disk
-    dst_ds = None
 
 
 def create_pnga_optical(b, g, r, a, boundary, gsd, epsg, dst):
