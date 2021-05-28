@@ -1,9 +1,10 @@
 {
   "no_images_process": 5,
-  "image_path": "../00_data/sample_dji2_ext",
+  "image_path": "../00_data/02_210525_Daejeong_Road_LDM",
   "extension": "JPG",
-  "types": "nonfixed-initial",
+  "types": "nonfixed-estimated",
   "epsg": 5186,
   "downscale": 2,
-  "ground_height": 0.1
+  "gsd": 0.1,
+  "ground_height": 0.0
 }
