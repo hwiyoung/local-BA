@@ -38,6 +38,8 @@ class CameraStats():
         rotation_ecef = camera_transform.rotation() * antenna_transform.rotation()
 
         self.estimated_location = Metashape.CoordinateSystem.transform(location_ecef, ecef_crs, crs)
+        esti_location_test = Metashape.CoordinateSystem.transform(location_ecef, ecef_crs,
+                                                                  Metashape.CoordinateSystem("EPSG::5186"))
         if camera.reference.location:
             self.reference_location = camera.reference.location
             self.error_location = Metashape.CoordinateSystem.transform(self.estimated_location, crs, ecef_crs) - Metashape.CoordinateSystem.transform(self.reference_location, crs, ecef_crs)
@@ -49,6 +51,7 @@ class CameraStats():
             localframe = ecef_crs.localframe(location_ecef)
 
         self.estimated_rotation = Metashape.utils.mat2euler(localframe.rotation() * rotation_ecef, chunk.euler_angles)
+        esti_rotation_test = Metashape.utils.mat2euler(localframe.rotation() * rotation_ecef, Metashape.EulerAnglesOPK)
         if camera.reference.rotation:
             self.reference_rotation = camera.reference.rotation
             self.error_rotation = self.estimated_rotation - self.reference_rotation
@@ -302,6 +305,9 @@ def solve_lba_first(images, epsg=5186, downscale=2):
     chunk.euler_angles = Metashape.EulerAnglesOPK
     save_end = time.time() - save_start
 
+    # estimated_coord = stats.estimated_location
+    # estimated_opk = stats.estimated_rotation
+
     T = chunk.transform.matrix
     estimated_coord = chunk.crs.project(
         T.mulp(camera.center))  # estimated XYZ in coordinate system units
@@ -326,10 +332,10 @@ def solve_lba_first(images, epsg=5186, downscale=2):
 
     cameras_start = time.time()
     chunk.exportReference(path="eo.txt", format=Metashape.ReferenceFormatCSV, items=Metashape.ReferenceItemsCameras,
-                          columns="nuvwdefo", delimiter=",")
+                          columns="nuvwdefoUVWDEFpqrijk", delimiter=",")
     chunk.exportReference(path="eo_" + images[-1].split("/")[-1].split(".")[0] + ".txt",
                           format=Metashape.ReferenceFormatCSV, items=Metashape.ReferenceItemsCameras,
-                          columns="nuvwdefo", delimiter=",")
+                          columns="nuvwdefoUVWDEFpqrijk", delimiter=",")
     cameras_end = time.time() - cameras_start
     points_start = time.time()
     chunk.exportPoints(path="pointclouds.las", source_data=Metashape.PointCloudData, format=Metashape.PointsFormatLAS,
@@ -600,7 +606,6 @@ def solve_lba_esti_uni(images, epsg=5186, downscale=2):
     camera.reference.rotation_enabled = True
 
     import_end = time.time() - import_start
-    # doc.save(path="./check2.psx", chunks=[doc.chunk])
 
     match_start = time.time()
     chunk.matchPhotos(downscale=downscale, keep_keypoints=True, reset_matches=False)
@@ -611,6 +616,7 @@ def solve_lba_esti_uni(images, epsg=5186, downscale=2):
     chunk.alignCameras(adaptive_fitting=True, reset_alignment=False)
     align_end = time.time() - align_start
     print("  *** align time: ", align_end)
+    # doc.save(path="./check.psx", chunks=[doc.chunk])
 
     if not camera.transform:
         print("There is no transformation matrix")
@@ -643,9 +649,9 @@ def solve_lba_esti_uni(images, epsg=5186, downscale=2):
 
     cameras_start = time.time()
     chunk.exportReference(path="eo.txt", format=Metashape.ReferenceFormatCSV, items=Metashape.ReferenceItemsCameras,
-                          columns="nuvwdefo", delimiter=",")
+                          columns="nuvwdefoUVWDEFpqrijk", delimiter=",")
     chunk.exportReference(path="eo_" + images[-1].split("/")[-1].split(".")[0] + ".txt", format=Metashape.ReferenceFormatCSV, items=Metashape.ReferenceItemsCameras,
-                          columns="nuvwdefo", delimiter=",")
+                          columns="nuvwdefoUVWDEFpqrijk", delimiter=",")
     cameras_end = time.time() - cameras_start
     points_start = time.time()
     chunk = set_region(chunk)

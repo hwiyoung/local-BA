@@ -9,7 +9,10 @@ console = Console()
 
 
 def orthophoto_dg(image_path, epsg=5186, gsd=0, ground_height=0):
-    # solve_direct_georeferencing
+    ######################
+    ### Georeferencing ###
+    ######################
+    ### 1. Georeferencing
     georef_start = time.time()
     eo, focal_length, pixel_size, center_z = solve_direct_georeferencing(image_path, epsg)
 
@@ -24,6 +27,9 @@ def orthophoto_dg(image_path, epsg=5186, gsd=0, ground_height=0):
     georef_time = time.time() - georef_start
     console.print(f"Georeferencing time: {georef_time:.2f} sec", style="blink bold red underline")
 
+    ###############
+    ### Mapping ###
+    ###############
     ### 2. Extract boundary
     dem_start = time.time()
     image = cv2.imread(image_path, -1)
@@ -47,8 +53,13 @@ def orthophoto_dg(image_path, epsg=5186, gsd=0, ground_height=0):
 
 
 def orthophoto_lba(image_path, flag, types, epsg=5186, gsd=0, downscale=2):
+    ######################
+    ### Georeferencing ###
+    ######################
+    ### 1. Georeferencing
     georef_start = time.time()
     if not flag:        # solve_lba_first
+        console.print(f"solve_lba_first", style="blink bold red underline")
         eo, focal_length, pixel_size, center_z = solve_lba_first(image_path, epsg, downscale)  # multiple images
     elif flag and types == "fixed":        # solve_lba_esti_div
         console.print(f"solve_lba_esti_div", style="blink bold red underline")
@@ -74,6 +85,9 @@ def orthophoto_lba(image_path, flag, types, epsg=5186, gsd=0, downscale=2):
     georef_time = time.time() - georef_start
     console.print(f"Georeferencing time: {georef_time:.2f} sec", style="blink bold red underline")
 
+    ###############
+    ### Mapping ###
+    ###############
     ### 2. DEM processing
     dem_start = time.time()
     dem_x, dem_y, dem_z, bbox = generate_dem("pointclouds.las", gsd)
