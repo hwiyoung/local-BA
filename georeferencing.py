@@ -247,7 +247,7 @@ def solve_direct_georeferencing(image, epsg=5186):
     return eo, focal_length, pixel_size, 0
 
 
-def solve_lba_first(images, epsg=5186, downscale=2):
+def solve_lba_first(images, epsg=5186, downscale=2, threshold=10):
     start_time = time.time()
 
     # 1. Construct a document
@@ -313,38 +313,16 @@ def solve_lba_first(images, epsg=5186, downscale=2):
     doc.save(path="./localba.psx", chunks=[doc.chunk])  # EPSG::(epsg), OPK
 
     camera = chunk.cameras[-1]
-    if not camera.transform:
-        print("There is no transformation matrix")
-        return
-
-    cameras_start = time.time()
-    chunk.exportReference(path="eo.txt", format=Metashape.ReferenceFormatCSV, items=Metashape.ReferenceItemsCameras,
-                          columns="nuvwdefoUVWDEFpqrijk", delimiter=",")
-    chunk.exportReference(path="eo_" + images[-1].split("/")[-1].split(".")[0] + ".txt",
-                          format=Metashape.ReferenceFormatCSV, items=Metashape.ReferenceItemsCameras,
-                          columns="nuvwdefoUVWDEFpqrijk", delimiter=",")
-    cameras_end = time.time() - cameras_start
-    points_start = time.time()
-    chunk.exportPoints(path="pointclouds.las", source_data=Metashape.PointCloudData, format=Metashape.PointsFormatLAS,
-                       crs=Metashape.CoordinateSystem("EPSG::" + str(epsg)))
-    points_end = time.time() - points_start
-
-    # TODO: Edit the part determining estimated EOP
     stats = CameraStats(camera)
+    error_location = np.sqrt(np.sum(np.square(stats.error_location), axis=0))  # RMS of location, m
     save_end = time.time() - save_start
+
+    if not camera.transform or error_location > threshold:
+        print(f" *** Not processed: {not camera.transform} or Wrong processed: {error_location:.2f} m")
+        return
 
     estimated_coord = stats.estimated_location
     estimated_opk = stats.estimated_rotation
-
-    # T = chunk.transform.matrix
-    # estimated_coord = chunk.crs.project(
-    #     T.mulp(camera.center))  # estimated XYZ in coordinate system units
-    # m = chunk.crs.localframe(
-    #     T.mulp(camera.center))  # transformation matrix to the LSE coordinates in the given point
-    # R = (m * T * camera.transform * Metashape.Matrix().Diag([1, -1, -1, 1])).rotation()
-    #
-    # estimated_ypr = Metashape.utils.mat2ypr(R)  # estimated orientation angles - yaw, pitch, roll
-    # estimated_opk = Metashape.utils.mat2opk(R)  # estimated orientation angles - omega, phi, kappa
 
     pos = list(estimated_coord)
     ori = list(estimated_opk)
@@ -358,17 +336,17 @@ def solve_lba_first(images, epsg=5186, downscale=2):
     # https://www.agisoft.com/forum/index.php?topic=3848.0
     center_z = list(chunk.crs.project(chunk.transform.matrix.mulp(chunk.region.center)))[-1]
 
-    # cameras_start = time.time()
-    # chunk.exportReference(path="eo.txt", format=Metashape.ReferenceFormatCSV, items=Metashape.ReferenceItemsCameras,
-    #                       columns="nuvwdefoUVWDEFpqrijk", delimiter=",")
-    # chunk.exportReference(path="eo_" + images[-1].split("/")[-1].split(".")[0] + ".txt",
-    #                       format=Metashape.ReferenceFormatCSV, items=Metashape.ReferenceItemsCameras,
-    #                       columns="nuvwdefoUVWDEFpqrijk", delimiter=",")
-    # cameras_end = time.time() - cameras_start
-    # points_start = time.time()
-    # chunk.exportPoints(path="pointclouds.las", source_data=Metashape.PointCloudData, format=Metashape.PointsFormatLAS,
-    #                    crs=Metashape.CoordinateSystem("EPSG::" + str(epsg)))
-    # points_end = time.time() - points_start
+    cameras_start = time.time()
+    chunk.exportReference(path="eo.txt", format=Metashape.ReferenceFormatCSV, items=Metashape.ReferenceItemsCameras,
+                          columns="nuvwdefoUVWDEFpqrijk", delimiter=",")
+    chunk.exportReference(path="eo_" + images[-1].split("/")[-1].split(".")[0] + ".txt",
+                          format=Metashape.ReferenceFormatCSV, items=Metashape.ReferenceItemsCameras,
+                          columns="nuvwdefoUVWDEFpqrijk", delimiter=",")
+    cameras_end = time.time() - cameras_start
+    points_start = time.time()
+    chunk.exportPoints(path="pointclouds.las", source_data=Metashape.PointCloudData, format=Metashape.PointsFormatLAS,
+                       crs=Metashape.CoordinateSystem("EPSG::" + str(epsg)))
+    points_end = time.time() - points_start
 
     process_end = time.time() - start_time
     print("*************************************************************")
@@ -588,16 +566,17 @@ def solve_lba_esti_div(images, epsg=5186, downscale=2):
     return eo, focal_length, pixel_size, center_z
 
 
-def solve_lba_esti_uni(images, epsg=5186, downscale=2):
+def solve_lba_esti_uni(images, epsg=5186, downscale=2, threshold=10):
     start_time = time.time()
 
+    # 1. Construct a document
     images = images.split()
-
     load_start = time.time()
     doc = Metashape.Document()
     doc.open("./localba.psx")   # EPSG::(epsg), OPK
     load_end = time.time() - load_start
 
+    # 2. Add photos
     add_start = time.time()
     source_crs = Metashape.CoordinateSystem("EPSG::4326")
     target_crs = Metashape.CoordinateSystem("EPSG::" + str(epsg))
@@ -609,6 +588,7 @@ def solve_lba_esti_uni(images, epsg=5186, downscale=2):
     chunk.addPhotos(images[-1])
     add_end = time.time() - add_start
 
+    # 3. Set reference
     eo_start = time.time()
     camera = chunk.cameras[-1]
     # position
@@ -639,39 +619,31 @@ def solve_lba_esti_uni(images, epsg=5186, downscale=2):
 
     import_end = time.time() - import_start
 
+    # 4. Match photos
     match_start = time.time()
     chunk.matchPhotos(downscale=downscale, keep_keypoints=True, reset_matches=False)
     match_end = time.time() - match_start
     print("  *** match time: ", match_end)
 
+    # 5. Align cameras
     align_start = time.time()
     chunk.alignCameras(adaptive_fitting=True, reset_alignment=False)
     align_end = time.time() - align_start
     print("  *** align time: ", align_end)
     # doc.save(path="./check.psx", chunks=[doc.chunk])
 
-    if not camera.transform:
-        print("There is no transformation matrix")
+    stats = CameraStats(camera)
+    error_location = np.sqrt(np.sum(np.square(stats.error_location), axis=0))  # RMS of location, m
+
+    if not camera.transform or error_location > threshold:
+        print(f" *** Not processed: {not camera.transform} or Wrong processed: {error_location:.2f} m")
         save_start = time.time()
-        # chunk.crs = source_crs
         doc.save(path="./localba.psx", chunks=[doc.chunk])  # EPSG::(epsg), OPK
         save_end = time.time() - save_start
         return
 
-    stats = CameraStats(camera)
-
     estimated_coord = stats.estimated_location
     estimated_opk = stats.estimated_rotation
-
-    # T = chunk.transform.matrix
-    # estimated_coord = chunk.crs.project(
-    #     T.mulp(camera.center))  # estimated XYZ in coordinate system units
-    # m = chunk.crs.localframe(
-    #     T.mulp(camera.center))  # transformation matrix to the LSE coordinates in the given point
-    # R = (m * T * camera.transform * Metashape.Matrix().Diag([1, -1, -1, 1])).rotation()
-    #
-    # estimated_ypr = Metashape.utils.mat2ypr(R)  # estimated orientation angles - yaw, pitch, roll
-    # estimated_opk = Metashape.utils.mat2opk(R)  # estimated orientation angles - omega, phi, kappa
 
     pos = list(estimated_coord)
     ori = list(estimated_opk)
