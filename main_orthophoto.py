@@ -1,15 +1,16 @@
-import json
+from config import config
 from collections import deque
+import time
+import numpy as np
+from pathlib import Path
+import Metashape
 
 from rich.console import Console
 from rich.table import Table
 
-from georeferencing import *
-from dem import boundary, generate_dem
-from module import Rot3D, las2nparray, nparray2las
-from rectification import *
-
 from processing import orthophoto_dg, orthophoto_lba
+from module import nparray2las
+from rectification import create_pnga_optical
 
 console = Console()
 
@@ -31,19 +32,22 @@ file_handler = logging.FileHandler('my.log')
 file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
 
-Metashape.app.gpu_mask = 1  # Set the number of gpus
+# Parameters
+image_path = config["image_path"]
+extension = config["extension"]
 
-with open("config.json") as f:
-    data = json.load(f)
-no_images_process = data["no_images_process"]
-image_path = data["image_path"]
-extension = data["extension"]
-types = data["types"]  # fixed, nonfixed-initial, nonfixed-estimated
-epsg = data["epsg"]
-# https://www.agisoft.com/forum/index.php?topic=11697.msg52465#msg52465
-downscale = data["downscale"]  # Image alignment accuracy - 0, 1, 2, 4, 8
-gsd = data["gsd"]
-ground_height = data["ground_height"]  # m
+no_images_process = config["no_images_process"]
+types = config["types"]
+matching_accuracy = config["matching_accuracy"]
+Metashape.app.gpu_mask = config["no_gpus"]
+
+diff_init_esti = config["diff_init_esti"]
+# std_init_esti = config["std_init_esti"]
+diff_before_current = config["diff_before_current"]
+
+epsg = config["epsg"]
+gsd = config["gsd"]
+ground_height = config["ground_height"]
 
 images = Path(image_path).glob('*.' + extension)
 images = [str(x) for x in images if x.is_file()]
@@ -70,10 +74,13 @@ for i in range(len(images)):
         table.add_row(image, dst)
         console.print(table)
         if i < no_images_process - 1:
-            b, g, r, a, bbox, times = orthophoto_dg(images[i], epsg=epsg, gsd=gsd, ground_height=ground_height)
+            b, g, r, a, bbox, times = orthophoto_dg(image_path=images[i], epsg=epsg,
+                                                    gsd=gsd, ground_height=ground_height)
         else:
-            b, g, r, a, bbox, times, flag = orthophoto_lba(image, flag, types, epsg=epsg, gsd=gsd, downscale=downscale)
-
+            b, g, r, a, bbox, times, flag = orthophoto_lba(image_path=image, flag=flag, types=types,
+                                                           matching_accuracy=matching_accuracy,
+                                                           diff_init_esti=diff_init_esti,
+                                                           epsg=epsg, gsd=gsd)
         ### (4. Write the Orthophoto)
         write_start = time.time()
         create_pnga_optical(b, g, r, a, bbox, gsd, epsg, dst)

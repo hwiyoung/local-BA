@@ -38,8 +38,6 @@ class CameraStats():
         rotation_ecef = camera_transform.rotation() * antenna_transform.rotation()
 
         self.estimated_location = Metashape.CoordinateSystem.transform(location_ecef, ecef_crs, crs)
-        esti_location_test = Metashape.CoordinateSystem.transform(location_ecef, ecef_crs,
-                                                                  Metashape.CoordinateSystem("EPSG::5186"))
         if camera.reference.location:
             self.reference_location = camera.reference.location
             self.error_location = Metashape.CoordinateSystem.transform(self.estimated_location, crs, ecef_crs) - Metashape.CoordinateSystem.transform(self.reference_location, crs, ecef_crs)
@@ -51,7 +49,6 @@ class CameraStats():
             localframe = ecef_crs.localframe(location_ecef)
 
         self.estimated_rotation = Metashape.utils.mat2euler(localframe.rotation() * rotation_ecef, chunk.euler_angles)
-        esti_rotation_test = Metashape.utils.mat2euler(localframe.rotation() * rotation_ecef, Metashape.EulerAnglesOPK)
         if camera.reference.rotation:
             self.reference_rotation = camera.reference.rotation
             self.error_rotation = self.estimated_rotation - self.reference_rotation
@@ -247,7 +244,7 @@ def solve_direct_georeferencing(image, epsg=5186):
     return eo, focal_length, pixel_size, 0
 
 
-def solve_lba_first(images, epsg=5186, downscale=2, threshold=10):
+def solve_lba_first(images, epsg=5186, downscale=2, diff_init_esti=10):
     start_time = time.time()
 
     # 1. Construct a document
@@ -317,7 +314,7 @@ def solve_lba_first(images, epsg=5186, downscale=2, threshold=10):
     error_location = np.sqrt(np.sum(np.square(stats.error_location), axis=0))  # RMS of location, m
     save_end = time.time() - save_start
 
-    if not camera.transform or error_location > threshold:
+    if not camera.transform or error_location > diff_init_esti:
         print(f" *** Not processed: {not camera.transform} or Wrong processed: {error_location:.2f} m")
         return
 
@@ -566,7 +563,7 @@ def solve_lba_esti_div(images, epsg=5186, downscale=2):
     return eo, focal_length, pixel_size, center_z
 
 
-def solve_lba_esti_uni(images, epsg=5186, downscale=2, threshold=10):
+def solve_lba_esti_uni(images, epsg=5186, downscale=2, diff_init_esti=10):
     start_time = time.time()
 
     # 1. Construct a document
@@ -635,7 +632,7 @@ def solve_lba_esti_uni(images, epsg=5186, downscale=2, threshold=10):
     stats = CameraStats(camera)
     error_location = np.sqrt(np.sum(np.square(stats.error_location), axis=0))  # RMS of location, m
 
-    if not camera.transform or error_location > threshold:
+    if not camera.transform or error_location > diff_init_esti:
         print(f" *** Not processed: {not camera.transform} or Wrong processed: {error_location:.2f} m")
         save_start = time.time()
         doc.save(path="./localba.psx", chunks=[doc.chunk])  # EPSG::(epsg), OPK
