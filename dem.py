@@ -101,16 +101,16 @@ def generate_dem(point_clouds, gsd):
 
     # 2. Denoising
 
-    # # 3. Ground filtering
-    # csf_start = time.time()
-    # filtered_xyz, ground = cloth_simulation_filtering(xyz)
-    # print("No. filtered points:", len(filtered_xyz))
-    # print(f"Ground filetering: {time.time() - csf_start:.2f} sec")
-    #
-    # # outFile = laspy.file.File(r"ground.las", mode='w', header=inFile.header)
-    # # outFile.points = points[ground]  # extract ground points, and save it to a las file.
-    # # outFile.close()  # do not forget this
-    filtered_xyz = xyz
+    # 3. Ground filtering
+    csf_start = time.time()
+    filtered_xyz, ground = cloth_simulation_filtering(xyz)
+    print("No. filtered points:", len(filtered_xyz))
+    print(f"Ground filetering: {time.time() - csf_start:.2f} sec")
+
+    # outFile = laspy.file.File(r"ground.las", mode='w', header=inFile.header)
+    # outFile.points = points[ground]  # extract ground points, and save it to a las file.
+    # outFile.close()  # do not forget this
+    # filtered_xyz = xyz
 
     # 4. Interpolation
     interpolation_start = time.time()

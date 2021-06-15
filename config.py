@@ -1,6 +1,6 @@
 config = {
     # Params for files
-    "image_path": "../00_data/02_210525_Daejeong_Road_LDM",
+    "image_path": "../00_data/04_210525_Moseulpo_Pilot_100m",
     "extension": "JPG",
 
     # Params for georeferencing

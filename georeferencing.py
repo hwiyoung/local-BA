@@ -629,11 +629,19 @@ def solve_lba_esti_uni(images, epsg=5186, downscale=2, diff_init_esti=10):
     print("  *** align time: ", align_end)
     # doc.save(path="./check.psx", chunks=[doc.chunk])
 
+    # Verifying 1: Is it processed?
+    if not camera.transform:
+        print(f"  *** Not processed: {not camera.transform}")
+        save_start = time.time()
+        doc.save(path="./localba.psx", chunks=[doc.chunk])  # EPSG::(epsg), OPK
+        save_end = time.time() - save_start
+        return
+
     stats = CameraStats(camera)
     error_location = np.sqrt(np.sum(np.square(stats.error_location), axis=0))  # RMS of location, m
-
-    if not camera.transform or error_location > diff_init_esti:
-        print(f" *** Not processed: {not camera.transform} or Wrong processed: {error_location:.2f} m")
+    # Verifying 2: Is it well processed?
+    if error_location > diff_init_esti:
+        print(f"  *** Wrong processed: {error_location:.2f} m")
         save_start = time.time()
         doc.save(path="./localba.psx", chunks=[doc.chunk])  # EPSG::(epsg), OPK
         save_end = time.time() - save_start
