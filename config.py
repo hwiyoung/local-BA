@@ -1,6 +1,6 @@
 config = {
     # Params for files
-    "image_path": "../00_data/04_210525_Moseulpo_Pilot_100m",
+    "image_path": "/home/user/NAS/internal/Inno_data/01.Drone_Raw/20210525_모슬포_중기청/06_210526_운진항_Pilot_150m/",
     "extension": "JPG",
 
     # Params for georeferencing
@@ -14,6 +14,14 @@ config = {
     "diff_init_esti": 10,           # Difference between location of initial and estimated in m
     # "std_init_esti": -,             # The standard deviation of bundle adjustment
     "diff_before_current": 10,      # Difference between location of just before and current photo in m
+
+    # Params for CSF
+    "rigidness": 3,                 # Scenes type of the point clouds (1: Mountain area with dense vegetation, 2: complex scenes, 3: flat terrain with high-rise buildings_
+    "slope_smooth": False,          # Slope post processing for disconnected terrain
+    "cloth_resolution": 0.5,        # The grid size (the unit is same as the unit of pointclouds) of cloth
+    "iterations": 500,              # The maximum iteration times of terrain simulation. 500 is enough for most of scenes.
+    "class_threshold": 0.5,         # The distances between points and the simulated terrain. 0.5 is adapted to most of scenes.
+    "time_step": 0.65,
 
     # Params for mapping
     "epsg": 5186,                   # Target coordinate system in EPSG

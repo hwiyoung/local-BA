@@ -3,6 +3,7 @@ import CSF
 import numpy as np
 from scipy.interpolate import griddata
 import time
+import open3d as o3d
 
 
 def boundary(image, eo, R, dem, pixel_size, focal_length):
@@ -94,12 +95,19 @@ def interpolate_dem(xyz, gsd, method='linear'):
 def generate_dem(point_clouds, gsd):
     start = time.time()
     # 1. Import point clouds
-    inFile = laspy.file.File(point_clouds, mode='r')  # read a las file
-    points = inFile.points
-    xyz = np.vstack((inFile.x, inFile.y, inFile.z)).transpose()  # extract x, y, z and put into a list
-    print("No. raw points:", len(xyz))
+    # inFile = laspy.file.File(point_clouds, mode='r')  # read a las file
+    # points = inFile.points
+    # xyz = np.vstack((inFile.x, inFile.y, inFile.z)).transpose()  # extract x, y, z and put into a list
+    # print("No. raw points:", len(xyz))
+
+    cloud = o3d.io.read_point_cloud(point_clouds)
+    print("No. raw points:", len(cloud.points))
 
     # 2. Denoising
+    cl, ind = cloud.remove_statistical_outlier(nb_neighbors=6, std_ratio=1.0)
+    inlier_cloud = cloud.select_by_index(ind)
+    xyz = np.asarray(inlier_cloud.points)
+    print("No. denoised points:", len(xyz))
 
     # 3. Ground filtering
     csf_start = time.time()

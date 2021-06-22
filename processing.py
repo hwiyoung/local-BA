@@ -93,7 +93,7 @@ def orthophoto_lba(image_path, flag, types, matching_accuracy=2, diff_init_esti=
     ###############
     ### 2. DEM processing
     dem_start = time.time()
-    dem_x, dem_y, dem_z, bbox = generate_dem("pointclouds.las", gsd)
+    dem_x, dem_y, dem_z, bbox = generate_dem("pointclouds.pcd", gsd)
     dem_time = time.time() - dem_start
     console.print(f"DEM time: {dem_time:.2f} sec", style="blink bold red underline")
 

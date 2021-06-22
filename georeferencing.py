@@ -341,7 +341,7 @@ def solve_lba_first(images, epsg=5186, downscale=2, diff_init_esti=10):
                           columns="nuvwdefoUVWDEFpqrijk", delimiter=",")
     cameras_end = time.time() - cameras_start
     points_start = time.time()
-    chunk.exportPoints(path="pointclouds.las", source_data=Metashape.PointCloudData, format=Metashape.PointsFormatLAS,
+    chunk.exportPoints(path="pointclouds.pcd", source_data=Metashape.PointCloudData, format=Metashape.PointsFormatPCD,
                        crs=Metashape.CoordinateSystem("EPSG::" + str(epsg)))
     points_end = time.time() - points_start
 
@@ -670,7 +670,7 @@ def solve_lba_esti_uni(images, epsg=5186, downscale=2, diff_init_esti=10):
     points_start = time.time()
     chunk = set_region(chunk)
     point_cloud = chunk.point_cloud
-    chunk.exportPoints(path="pointclouds.las", source_data=Metashape.PointCloudData, format=Metashape.PointsFormatLAS,
+    chunk.exportPoints(path="pointclouds.pcd", source_data=Metashape.PointCloudData, format=Metashape.PointsFormatPCD,
                        crs=target_crs)
     points_end = time.time() - points_start
 
