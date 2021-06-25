@@ -74,13 +74,13 @@ for i in range(len(images)):
         table.add_row(image, dst)
         console.print(table)
         if i < no_images_process - 1:
-            b, g, r, a, bbox, times = orthophoto_dg(image_path=images[i], epsg=epsg,
-                                                    gsd=gsd, ground_height=ground_height)
+            b, g, r, a, bbox, gsd, times = orthophoto_dg(image_path=images[i], epsg=epsg,
+                                                         gsd=gsd, ground_height=ground_height)
         else:
-            b, g, r, a, bbox, times, flag = orthophoto_lba(image_path=image, flag=flag, types=types,
-                                                           matching_accuracy=matching_accuracy,
-                                                           diff_init_esti=diff_init_esti,
-                                                           epsg=epsg, gsd=gsd)
+            b, g, r, a, bbox, gsd, times, flag = orthophoto_lba(image_path=image, flag=flag, types=types,
+                                                                matching_accuracy=matching_accuracy,
+                                                                diff_init_esti=diff_init_esti,
+                                                                epsg=epsg, gsd=gsd)
         ### (4. Write the Orthophoto)
         write_start = time.time()
         create_pnga_optical(b, g, r, a, bbox, gsd, epsg, dst)

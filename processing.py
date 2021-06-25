@@ -50,7 +50,7 @@ def orthophoto_dg(image_path, epsg=5186, gsd=0, ground_height=0):
 
     times = np.array([georef_time, dem_time, rectify_time])
 
-    return b, g, r, a, bbox, times
+    return b, g, r, a, bbox, gsd, times
 
 
 def orthophoto_lba(image_path, flag, types, matching_accuracy=2, diff_init_esti=10, epsg=5186, gsd=0):
@@ -110,7 +110,7 @@ def orthophoto_lba(image_path, flag, types, matching_accuracy=2, diff_init_esti=
     flag = True
     times = np.array([georef_time, dem_time, rectify_time])
 
-    return b, g, r, a, bbox, times, flag
+    return b, g, r, a, bbox, gsd, times, flag
 
     # # Import las to numpy array
     # points, colors = las2nparray(file_path="pointclouds.las")
