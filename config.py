@@ -1,7 +1,8 @@
 config = {
     # Params for files
-    "image_path": "/home/user/NAS/internal/Inno_data/01.Drone_Raw/20210525_모슬포_중기청/06_210526_운진항_Pilot_150m/",
+    "image_path": "/home/user/hdd/MSS/04_Moseulpo_Pilot_100m/Raw/",
     "extension": "JPG",
+    "output_path": "/home/user/hdd/MSS/04_Moseulpo_Pilot_100m/Orthophotos/",
 
     # Params for georeferencing
     "no_images_process": 5,         # Number of images to perform local bundle adjustment. At least 3

@@ -244,7 +244,7 @@ def solve_direct_georeferencing(image, epsg=5186):
     return eo, focal_length, pixel_size, 0
 
 
-def solve_lba_first(images, epsg=5186, downscale=2, diff_init_esti=10):
+def solve_lba_first(images, epsg=5186, downscale=2, diff_init_esti=10, output_path="."):
     start_time = time.time()
 
     # 1. Construct a document
@@ -336,13 +336,13 @@ def solve_lba_first(images, epsg=5186, downscale=2, diff_init_esti=10):
     cameras_start = time.time()
     chunk.exportReference(path="eo.txt", format=Metashape.ReferenceFormatCSV, items=Metashape.ReferenceItemsCameras,
                           columns="nuvwdefoUVWDEFpqrijk", delimiter=",")
-    chunk.exportReference(path="eo_" + images[-1].split("/")[-1].split(".")[0] + ".txt",
+    chunk.exportReference(path=str(Path(output_path) / str("eo_" + images[-1].split("/")[-1].split(".")[0] + ".txt")),
                           format=Metashape.ReferenceFormatCSV, items=Metashape.ReferenceItemsCameras,
                           columns="nuvwdefoUVWDEFpqrijk", delimiter=",")
     cameras_end = time.time() - cameras_start
     points_start = time.time()
-    chunk.exportPoints(path="pointclouds.pcd", source_data=Metashape.PointCloudData, format=Metashape.PointsFormatPCD,
-                       crs=Metashape.CoordinateSystem("EPSG::" + str(epsg)))
+    chunk.exportPoints(path="./pointclouds.pcd", source_data=Metashape.PointCloudData,
+                       format=Metashape.PointsFormatPCD, crs=Metashape.CoordinateSystem("EPSG::" + str(epsg)))
     points_end = time.time() - points_start
 
     process_end = time.time() - start_time
@@ -563,7 +563,7 @@ def solve_lba_esti_div(images, epsg=5186, downscale=2):
     return eo, focal_length, pixel_size, center_z
 
 
-def solve_lba_esti_uni(images, epsg=5186, downscale=2, diff_init_esti=10):
+def solve_lba_esti_uni(images, epsg=5186, downscale=2, diff_init_esti=10, output_path="."):
     start_time = time.time()
 
     # 1. Construct a document
@@ -662,15 +662,17 @@ def solve_lba_esti_uni(images, epsg=5186, downscale=2, diff_init_esti=10):
     center_z = list(chunk.crs.project(chunk.transform.matrix.mulp(chunk.region.center)))[-1]
 
     cameras_start = time.time()
-    chunk.exportReference(path="eo.txt", format=Metashape.ReferenceFormatCSV, items=Metashape.ReferenceItemsCameras,
+    chunk.exportReference(path="eo.txt", format=Metashape.ReferenceFormatCSV,
+                          items=Metashape.ReferenceItemsCameras,
                           columns="nuvwdefoUVWDEFpqrijk", delimiter=",")
-    chunk.exportReference(path="eo_" + images[-1].split("/")[-1].split(".")[0] + ".txt", format=Metashape.ReferenceFormatCSV, items=Metashape.ReferenceItemsCameras,
+    chunk.exportReference(path=str(Path(output_path) / str("eo_" + images[-1].split("/")[-1].split(".")[0] + ".txt")),
+                          format=Metashape.ReferenceFormatCSV, items=Metashape.ReferenceItemsCameras,
                           columns="nuvwdefoUVWDEFpqrijk", delimiter=",")
     cameras_end = time.time() - cameras_start
     points_start = time.time()
     chunk = set_region(chunk)
     point_cloud = chunk.point_cloud
-    chunk.exportPoints(path="pointclouds.pcd", source_data=Metashape.PointCloudData, format=Metashape.PointsFormatPCD,
+    chunk.exportPoints(path="./pointclouds.pcd", source_data=Metashape.PointCloudData, format=Metashape.PointsFormatPCD,
                        crs=target_crs)
     points_end = time.time() - points_start
 

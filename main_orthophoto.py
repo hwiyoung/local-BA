@@ -35,6 +35,9 @@ logger.addHandler(file_handler)
 # Parameters
 image_path = config["image_path"]
 extension = config["extension"]
+output_path = config["output_path"]
+if not Path(output_path).exists():
+    Path(output_path).mkdir()
 
 no_images_process = config["no_images_process"]
 types = config["types"]
@@ -63,7 +66,7 @@ start_time = time.time()
 for i in range(len(images)):
     processing_start = time.time()
     name = images[i].split("/")[-1]
-    dst = './' + images[i].split("/")[-1].split(".")[0]
+    dst = str(Path(output_path) / images[i].split("/")[-1].split(".")[0])
     table = Table(show_header=True, header_style="bold magenta")
     table.add_column("Image", style="dim")
     table.add_column("Output", style="dim")
@@ -80,7 +83,7 @@ for i in range(len(images)):
             b, g, r, a, bbox, gsd, times, flag = orthophoto_lba(image_path=image, flag=flag, types=types,
                                                                 matching_accuracy=matching_accuracy,
                                                                 diff_init_esti=diff_init_esti,
-                                                                epsg=epsg, gsd=gsd)
+                                                                epsg=epsg, gsd=gsd, output_path=output_path)
         ### (4. Write the Orthophoto)
         write_start = time.time()
         create_pnga_optical(b, g, r, a, bbox, gsd, epsg, dst)

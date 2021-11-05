@@ -53,7 +53,7 @@ def orthophoto_dg(image_path, epsg=5186, gsd=0, ground_height=0):
     return b, g, r, a, bbox, gsd, times
 
 
-def orthophoto_lba(image_path, flag, types, matching_accuracy=2, diff_init_esti=10, epsg=5186, gsd=0):
+def orthophoto_lba(image_path, flag, types, matching_accuracy=2, diff_init_esti=10, epsg=5186, gsd=0, output_path="."):
     ######################
     ### Georeferencing ###
     ######################
@@ -62,17 +62,17 @@ def orthophoto_lba(image_path, flag, types, matching_accuracy=2, diff_init_esti=
     if not flag:        # solve_lba_first
         console.print(f"solve_lba_first", style="blink bold red underline")
         eo, focal_length, pixel_size, center_z = solve_lba_first(image_path,    # multiple images
-                                                                 epsg, matching_accuracy, diff_init_esti)
-    elif flag and types == "fixed":        # solve_lba_esti_div
+                                                                 epsg, matching_accuracy, diff_init_esti, output_path)
+    elif flag and types == "fixed":        # solve_lba_esti_div, need to be modified
         console.print(f"solve_lba_esti_div", style="blink bold red underline")
         eo, focal_length, pixel_size, center_z = solve_lba_esti_div(image_path, epsg, matching_accuracy)
-    elif flag and types == "nonfixed-initial":        # solve_lba_init_uni
+    elif flag and types == "nonfixed-initial":        # solve_lba_init_uni, need to be modified
         console.print(f"solve_lba_init_uni", style="blink bold red underline")
         eo, focal_length, pixel_size, center_z = solve_lba_init_uni(image_path, epsg, matching_accuracy)
     elif flag and types == "nonfixed-estimated":        # solve_lba_esti_uni
         console.print(f"solve_lba_esti_uni", style="blink bold red underline")
         eo, focal_length, pixel_size, center_z = solve_lba_esti_uni(image_path, # one image
-                                                                    epsg, matching_accuracy, diff_init_esti)
+                                                                    epsg, matching_accuracy, diff_init_esti, output_path)
     else:
         console.print(f"Which type of processing you have?", style="blink bold red underline")
         return
