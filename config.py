@@ -1,8 +1,9 @@
 config = {
     # Params for files
-    "image_path": "/home/user/hdd/MSS/04_Moseulpo_Pilot_100m/Raw/",
+    "image_path": "/home/user/hdd/LDM_Jeju/02_211113-14_Pyoseon/211113_Pyoseon/Raw/",
     "extension": "JPG",
-    "output_path": "/home/user/hdd/MSS/04_Moseulpo_Pilot_100m/Orthophotos/",
+    "metadata_in_image": False,     # Whether to read metadata in an image itself(True) or from an external file(False)
+    "output_path": "/home/user/hdd/LDM_Jeju/02_211113-14_Pyoseon/211113_Pyoseon/Orthophotos/",
 
     # Params for georeferencing
     "no_images_process": 5,         # Number of images to perform local bundle adjustment. At least 3
@@ -10,6 +11,7 @@ config = {
     "matching_accuracy": 2,         # Image matching accuracy (Highest = 0, High = 1, Medium = 2, Low = 4, Lowest = 8)
                                     # https://www.agisoft.com/forum/index.php?topic=11697.msg52465#msg52465
     "no_gpus": 1,                   # Number of GPUs to process in Metashape
+    "sys_cal": "KAU",               # Types of system calibration w.r.t. drones (KAU, DJI)
 
     # Params for handling error
     "diff_init_esti": 10,           # Difference between location of initial and estimated in m
@@ -27,5 +29,6 @@ config = {
     # Params for mapping
     "epsg": 5186,                   # Target coordinate system in EPSG
     "gsd": 0.1,                     # Target ground sampling distance in m. Set to 0 to disable
+    "dem": "plane",                 # Types of projection plane for indirect mapping (dsm, dtm, plane)
     "ground_height": 0.0            # Target ground height in m
 }

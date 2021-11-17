@@ -9,13 +9,13 @@ import time
 console = Console()
 
 
-def orthophoto_dg(image_path, epsg=5186, gsd=0, ground_height=0):
+def orthophoto_dg(image_path, metadata_in_image, sys_cal, epsg=5186, gsd=0, ground_height=0):
     ######################
     ### Georeferencing ###
     ######################
     ### 1. Georeferencing
     georef_start = time.time()
-    eo, focal_length, pixel_size, center_z = solve_direct_georeferencing(image_path, epsg)
+    eo, focal_length, pixel_size, center_z = solve_direct_georeferencing(image_path, metadata_in_image, sys_cal, epsg)
 
     R = Rot3D(eo * np.pi / 180)
     if gsd == 0:

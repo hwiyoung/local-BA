@@ -156,14 +156,14 @@ def rot_2d(theta):
 
 
 def rpy_to_opk(rpy, maker=""):
-    if maker == "samsung":
+    if maker == "KAU":
         roll_pitch = np.empty_like(rpy[0:2])
 
         roll_pitch[0] = -rpy[1]
         roll_pitch[1] = -rpy[0]
 
         omega_phi = np.dot(rot_2d(rpy[2] * np.pi / 180), roll_pitch.reshape(2, 1))
-        kappa = -rpy[2] - 90
+        kappa = -rpy[2] + 90
         return np.array([float(omega_phi[0, 0]), float(omega_phi[1, 0]), kappa])
     else:
         roll_pitch = np.empty_like(rpy[0:2])
@@ -202,7 +202,7 @@ def set_region(chunk):
     return chunk
 
 
-def solve_direct_georeferencing(image, epsg=5186):
+def solve_direct_georeferencing(image, metadata_in_image, sys_cal, epsg=5186):
     start_time = time.time()
 
     # 1. Construct a document
@@ -215,21 +215,34 @@ def solve_direct_georeferencing(image, epsg=5186):
 
     # 3. Set reference
     camera = chunk.cameras[0]
-    if not camera.reference.location:
-        return
-    if ("DJI/RelativeAltitude" in camera.photo.meta.keys()) and camera.reference.location:
+    if metadata_in_image:
+        if not camera.reference.location:
+            return
+        # In case of DJI
         z = float(camera.photo.meta["DJI/RelativeAltitude"])
         camera.reference.location = (camera.reference.location.x, camera.reference.location.y, z)
-    gimbal_roll = float(camera.photo.meta["DJI/GimbalRollDegree"])
-    if 180 - abs(gimbal_roll) <= 0.1:
-        gimbal_roll = 0
-    gimbal_pitch = float(camera.photo.meta["DJI/GimbalPitchDegree"])
-    gimbal_yaw = float(camera.photo.meta["DJI/GimbalYawDegree"])
+        gimbal_roll = float(camera.photo.meta["DJI/GimbalRollDegree"])
+        if 180 - abs(gimbal_roll) <= 0.1:
+            gimbal_roll = 0
+        gimbal_pitch = float(camera.photo.meta["DJI/GimbalPitchDegree"])
+        gimbal_yaw = float(camera.photo.meta["DJI/GimbalYawDegree"])
+        ori = rpy_to_opk(np.array([gimbal_roll, gimbal_pitch, gimbal_yaw]))
+    else:
+        eo_file = str(Path(image).parent / Path(image).stem) + ".csv"
+        with open(eo_file, "r") as f:
+            next(f)
+            eo = f.readline()
+        _, longitude, latitude, altitude, roll, pitch, yaw = eo.split(",")
+        camera.reference.location = (float(longitude), float(latitude), float(altitude))
+        ori = rpy_to_opk(np.array([roll, pitch, yaw], dtype=np.float), maker=sys_cal)
+
     # 3.1. Convert coordinates
-    source_crs = chunk.crs
+    if chunk.crs.name == 'Local Coordinates (m)':
+        source_crs = Metashape.CoordinateSystem("EPSG::4326")
+    else:
+        source_crs = chunk.crs
     target_crs = Metashape.CoordinateSystem("EPSG::" + str(epsg))
     pos = Metashape.CoordinateSystem.transform(point=camera.reference.location, source=source_crs, target=target_crs)
-    ori = rpy_to_opk(np.array([gimbal_roll, gimbal_pitch, gimbal_yaw]))
 
     eo = np.array([pos[0], pos[1], pos[2], ori[0], ori[1], ori[2]])
 

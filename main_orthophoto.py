@@ -7,6 +7,7 @@ import Metashape
 
 from rich.console import Console
 from rich.table import Table
+from rich.progress import track
 
 from processing import orthophoto_dg, orthophoto_lba
 from module import nparray2las
@@ -35,6 +36,7 @@ logger.addHandler(file_handler)
 # Parameters
 image_path = config["image_path"]
 extension = config["extension"]
+metadata_in_image = config["metadata_in_image"]
 output_path = config["output_path"]
 if not Path(output_path).exists():
     Path(output_path).mkdir()
@@ -43,6 +45,7 @@ no_images_process = config["no_images_process"]
 types = config["types"]
 matching_accuracy = config["matching_accuracy"]
 Metashape.app.gpu_mask = config["no_gpus"]
+sys_cal = config["sys_cal"]
 
 diff_init_esti = config["diff_init_esti"]
 # std_init_esti = config["std_init_esti"]
@@ -50,7 +53,10 @@ diff_before_current = config["diff_before_current"]
 
 epsg = config["epsg"]
 gsd = config["gsd"]
+dem = config["dem"]
 ground_height = config["ground_height"]
+
+console.log(config)
 
 images = Path(image_path).glob('*.' + extension)
 images = [str(x) for x in images if x.is_file()]
@@ -63,7 +69,7 @@ colors_stack = np.zeros((0, 3))
 
 flag = False
 start_time = time.time()
-for i in range(len(images)):
+for i in track(range(len(images))):
     processing_start = time.time()
     name = images[i].split("/")[-1]
     dst = str(Path(output_path) / images[i].split("/")[-1].split(".")[0])
@@ -77,7 +83,8 @@ for i in range(len(images)):
         table.add_row(image, dst)
         console.print(table)
         if i < no_images_process - 1:
-            b, g, r, a, bbox, gsd, times = orthophoto_dg(image_path=images[i], epsg=epsg,
+            b, g, r, a, bbox, gsd, times = orthophoto_dg(image_path=images[i], metadata_in_image=metadata_in_image,
+                                                         sys_cal=sys_cal, epsg=epsg,
                                                          gsd=gsd, ground_height=ground_height)
         else:
             b, g, r, a, bbox, gsd, times, flag = orthophoto_lba(image_path=image, flag=flag, types=types,
