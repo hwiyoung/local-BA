@@ -87,7 +87,8 @@ for i in track(range(len(images))):
                                                          sys_cal=sys_cal, epsg=epsg,
                                                          gsd=gsd, ground_height=ground_height)
         else:
-            b, g, r, a, bbox, gsd, times, flag = orthophoto_lba(image_path=image, flag=flag, types=types,
+            b, g, r, a, bbox, gsd, times, flag = orthophoto_lba(image_path=image, metadata_in_image=metadata_in_image,
+                                                                sys_cal=sys_cal, flag=flag, types=types,
                                                                 matching_accuracy=matching_accuracy,
                                                                 diff_init_esti=diff_init_esti,
                                                                 epsg=epsg, gsd=gsd, output_path=output_path)
@@ -98,8 +99,10 @@ for i in track(range(len(images))):
         console.print(f"Write time: {write_time:.2f} sec", style="blink bold red underline")
 
     except Exception as e:
-        print(f" *** {e}")
-        b, g, r, a, bbox, times = orthophoto_dg(images[i], epsg=epsg, gsd=gsd, ground_height=ground_height)
+        console.print(f" *** {e}", style="blink bold red underline")
+        b, g, r, a, bbox, gsd, times = orthophoto_dg(image_path=images[i], metadata_in_image=metadata_in_image,
+                                                     sys_cal=sys_cal, epsg=epsg,
+                                                     gsd=gsd, ground_height=ground_height)
 
         ### (4. Write the Orthophoto)
         write_start = time.time()

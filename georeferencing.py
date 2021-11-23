@@ -257,7 +257,7 @@ def solve_direct_georeferencing(image, metadata_in_image, sys_cal, epsg=5186):
     return eo, focal_length, pixel_size, 0
 
 
-def solve_lba_first(images, epsg=5186, downscale=2, diff_init_esti=10, output_path="."):
+def solve_lba_first(images, metadata_in_image, sys_cal, epsg=5186, downscale=2, diff_init_esti=10, output_path="."):
     start_time = time.time()
 
     # 1. Construct a document
@@ -276,24 +276,37 @@ def solve_lba_first(images, epsg=5186, downscale=2, diff_init_esti=10, output_pa
     target_crs = Metashape.CoordinateSystem("EPSG::" + str(epsg))
 
     chunk.euler_angles = Metashape.EulerAnglesOPK   # transform to destination angles(from YPR to OPK)
-    for camera in chunk.cameras:
-        if not camera.reference.location:
-            continue
-        # position
-        if ("DJI/RelativeAltitude" in camera.photo.meta.keys()) and camera.reference.location:
-            z = float(camera.photo.meta["DJI/RelativeAltitude"])
-            camera.reference.location = (camera.reference.location.x, camera.reference.location.y, z)
+    if metadata_in_image:
+        for camera in chunk.cameras:
+            if not camera.reference.location:
+                continue
+            # position
+            if ("DJI/RelativeAltitude" in camera.photo.meta.keys()) and camera.reference.location:
+                z = float(camera.photo.meta["DJI/RelativeAltitude"])
+                camera.reference.location = (camera.reference.location.x, camera.reference.location.y, z)
 
-        # orientation
-        gimbal_roll = float(camera.photo.meta["DJI/GimbalRollDegree"])
-        if 180 - abs(gimbal_roll) <= 0.1:
-            gimbal_roll = 0
-        gimbal_pitch = float(camera.photo.meta["DJI/GimbalPitchDegree"])
-        gimbal_yaw = float(camera.photo.meta["DJI/GimbalYawDegree"])
+            # orientation
+            gimbal_roll = float(camera.photo.meta["DJI/GimbalRollDegree"])
+            if 180 - abs(gimbal_roll) <= 0.1:
+                gimbal_roll = 0
+            gimbal_pitch = float(camera.photo.meta["DJI/GimbalPitchDegree"])
+            gimbal_yaw = float(camera.photo.meta["DJI/GimbalYawDegree"])
 
-        ori = rpy_to_opk(np.array([gimbal_roll, gimbal_pitch, gimbal_yaw]))
-        camera.reference.rotation = ori
-        camera.reference.rotation_enabled = True
+            ori = rpy_to_opk(np.array([gimbal_roll, gimbal_pitch, gimbal_yaw]))
+            camera.reference.rotation = ori
+            camera.reference.rotation_enabled = True
+    else:
+        for camera in chunk.cameras:
+            image = camera.photo.path
+            eo_file = str(Path(image).parent / Path(image).stem) + ".csv"
+            with open(eo_file, "r") as f:
+                next(f)
+                eo = f.readline()
+            _, longitude, latitude, altitude, roll, pitch, yaw = eo.split(",")
+            camera.reference.location = (float(longitude), float(latitude), float(altitude))
+            ori = rpy_to_opk(np.array([roll, pitch, yaw], dtype=np.float), maker=sys_cal)
+            camera.reference.rotation = ori
+            camera.reference.rotation_enabled = True
 
     chunk.crs = target_crs  # transform to destination crs(from source(4326) to target(epsg))
     for camera in chunk.cameras:
@@ -304,7 +317,7 @@ def solve_lba_first(images, epsg=5186, downscale=2, diff_init_esti=10, output_pa
                                                                              source=source_crs, target=target_crs)
     eo_end = time.time() - eo_start
 
-    # doc.save(path="./check.psx", chunks=[doc.chunk])  # EPSG::(epsg), OPK
+    doc.save(path="./check.psx", chunks=[doc.chunk])  # EPSG::(epsg), OPK
 
     # 4. Match photos
     match_start = time.time()
@@ -576,7 +589,7 @@ def solve_lba_esti_div(images, epsg=5186, downscale=2):
     return eo, focal_length, pixel_size, center_z
 
 
-def solve_lba_esti_uni(images, epsg=5186, downscale=2, diff_init_esti=10, output_path="."):
+def solve_lba_esti_uni(images, metadata_in_image, sys_cal, epsg=5186, downscale=2, diff_init_esti=10, output_path="."):
     start_time = time.time()
 
     # 1. Construct a document
@@ -601,23 +614,35 @@ def solve_lba_esti_uni(images, epsg=5186, downscale=2, diff_init_esti=10, output
     # 3. Set reference
     eo_start = time.time()
     camera = chunk.cameras[-1]
-    # position
-    camera.reference.location = Metashape.CoordinateSystem.transform(point=camera.reference.location,
-                                                                     source=source_crs, target=target_crs)
-    chunk.crs = target_crs
-    z = float(camera.photo.meta["DJI/RelativeAltitude"])
-    camera.reference.location = (camera.reference.location.x, camera.reference.location.y, z)
+    if metadata_in_image:
+        # position
+        camera.reference.location = Metashape.CoordinateSystem.transform(point=camera.reference.location,
+                                                                         source=source_crs, target=target_crs)
+        chunk.crs = target_crs
+        z = float(camera.photo.meta["DJI/RelativeAltitude"])
+        camera.reference.location = (camera.reference.location.x, camera.reference.location.y, z)
 
-    # orientation
-    gimbal_roll = float(camera.photo.meta["DJI/GimbalRollDegree"])
-    if 180 - abs(gimbal_roll) <= 0.1:
-        gimbal_roll = 0
-    gimbal_pitch = float(camera.photo.meta["DJI/GimbalPitchDegree"])
-    gimbal_yaw = float(camera.photo.meta["DJI/GimbalYawDegree"])
+        # orientation
+        gimbal_roll = float(camera.photo.meta["DJI/GimbalRollDegree"])
+        if 180 - abs(gimbal_roll) <= 0.1:
+            gimbal_roll = 0
+        gimbal_pitch = float(camera.photo.meta["DJI/GimbalPitchDegree"])
+        gimbal_yaw = float(camera.photo.meta["DJI/GimbalYawDegree"])
 
-    ori = rpy_to_opk(np.array([gimbal_roll, gimbal_pitch, gimbal_yaw]))
-    camera.reference.rotation = ori
-    camera.reference.rotation_enabled = True
+        ori = rpy_to_opk(np.array([gimbal_roll, gimbal_pitch, gimbal_yaw]))
+        camera.reference.rotation = ori
+        camera.reference.rotation_enabled = True
+    else:
+        eo_file = str(Path(images[-1]).parent / Path(images[-1]).stem) + ".csv"
+        with open(eo_file, "r") as f:
+            next(f)
+            eo = f.readline()
+        _, longitude, latitude, altitude, roll, pitch, yaw = eo.split(",")
+        camera.reference.location = (float(longitude), float(latitude), float(altitude))
+        camera.reference.location = Metashape.CoordinateSystem.transform(point=camera.reference.location,
+                                                                         source=source_crs, target=target_crs)
+        chunk.crs = target_crs
+        ori = rpy_to_opk(np.array([roll, pitch, yaw], dtype=np.float), maker=sys_cal)
     eo_end = time.time() - eo_start
 
     import_start = time.time()
@@ -625,7 +650,7 @@ def solve_lba_esti_uni(images, epsg=5186, downscale=2, diff_init_esti=10, output
     chunk.importReference(path="eo.txt", format=Metashape.ReferenceFormatCSV, columns="nxyzabco",
                           delimiter=",", skip_rows=2)   # plane CRS, e.g.) EPSG::5186
 
-    # doc.save(path="./check.psx", chunks=[doc.chunk])    # EPSG::(epsg), OPK
+    doc.save(path="./check.psx", chunks=[doc.chunk])    # EPSG::(epsg), OPK
 
     import_end = time.time() - import_start
 
