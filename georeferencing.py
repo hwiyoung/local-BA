@@ -306,7 +306,7 @@ def solve_lba_first(images, metadata_in_image, sys_cal, epsg=5186, downscale=2, 
             camera.reference.location = (float(longitude), float(latitude), float(altitude))
             ori = rpy_to_opk(np.array([roll, pitch, yaw], dtype=np.float), maker=sys_cal)
             camera.reference.rotation = ori
-            camera.reference.rotation_enabled = True
+            # camera.reference.rotation_enabled = True
 
     chunk.crs = target_crs  # transform to destination crs(from source(4326) to target(epsg))
     for camera in chunk.cameras:

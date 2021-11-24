@@ -1,14 +1,14 @@
 config = {
     # Params for files
-    "image_path": "/home/user/hdd/LDM_Jeju/02_211113-14_Pyoseon/211113_Pyoseon/Raw/",
+    "image_path": "/home/user/hdd/LDM_Jeju/02_211113-14_Pyoseon/211113_Pyoseon/Raw_test/",
     "extension": "JPG",
     "metadata_in_image": False,     # Whether to read metadata in an image itself(True) or from an external file(False)
-    "output_path": "/home/user/hdd/LDM_Jeju/02_211113-14_Pyoseon/211113_Pyoseon/Orthophotos/",
+    "output_path": "/home/user/hdd/LDM_Jeju/02_211113-14_Pyoseon/211113_Pyoseon/Orthophotos_test/",
 
     # Params for georeferencing
     "no_images_process": 5,         # Number of images to perform local bundle adjustment. At least 3
     "types": "nonfixed-estimated",  # Types of setting accuracy (fixed, nonfixed-initial, nonfixed-estimated)
-    "matching_accuracy": 2,         # Image matching accuracy (Highest = 0, High = 1, Medium = 2, Low = 4, Lowest = 8)
+    "matching_accuracy": 1,         # Image matching accuracy (Highest = 0, High = 1, Medium = 2, Low = 4, Lowest = 8)
                                     # https://www.agisoft.com/forum/index.php?topic=11697.msg52465#msg52465
     "no_gpus": 1,                   # Number of GPUs to process in Metashape
     "sys_cal": "KAU",               # Types of system calibration w.r.t. drones (KAU, DJI)
