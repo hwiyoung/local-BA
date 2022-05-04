@@ -130,3 +130,5 @@ dmypy.json
 
 # Metashape licesense
 metashape.lic
+
+.vscode/
