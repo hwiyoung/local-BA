@@ -36,7 +36,7 @@ for i, new_image in enumerate(queue):
         os.remove(os.path.join(project_path, 'img_list.txt'))
 
         # Replace the first images to the new image in images folder
-        print(f"Replace the first image: {processing_images[i]}")
+        print(f"Replace the first image: {processing_images[i]} with {new_image}")
         shutil.move(os.path.join(project_path, 'images', processing_images[i]), os.path.join(project_path, 'processed'))
         shutil.move(os.path.join(project_path, 'queue', new_image), os.path.join(project_path, 'images'))
 
@@ -48,6 +48,7 @@ for i, new_image in enumerate(queue):
         os.system(f'docker run -ti --rm --name {container_name} -v {vm_dataset}:/datasets -v {vm_points}:/code/opendm/ldm/points.py -v '
         f'{vm_opensfm}:/code/stages/run_opensfm.py {image_name} --project-path /datasets yangpyeong --use-hybrid-bundle-adjustment '
         '--skip-report --fast-orthophoto --orthophoto-resolution 10.0 --end-with odm_orthophoto --time --rerun-all')
+        
         # Result data
         shutil.copy(os.path.join(project_path, 'odm_orthophoto', 'odm_orthophoto.tif'), os.path.join(project_path, 'results', f'{os.path.splitext(new_image)[0]}.tif'))
         shutil.copy(os.path.join(project_path, 'benchmark.txt'), os.path.join(project_path, 'results', f'benchmark_{os.path.splitext(new_image)[0]}.txt'))
@@ -56,10 +57,10 @@ total_processing = time.time() - total_start
 print(f"Elpased time: {total_processing: .2f} sec")
 print(f"Average processing time: {total_processing / (len(queue) + 1):.2f} sec")
 
-processed_images = os.listdir(os.path.join(project_path, 'processed'))
-for image in processed_images:
-        shutil.move(os.path.join(project_path, 'processed', image), os.path.join(project_path, 'images'))
-
 processing_images = os.listdir(os.path.join(project_path, 'images'))
 for image in processing_images:
         shutil.move(os.path.join(project_path, 'images', image), os.path.join(project_path, 'queue'))
+
+processed_images = os.listdir(os.path.join(project_path, 'processed'))
+for image in processed_images:
+        shutil.move(os.path.join(project_path, 'processed', image), os.path.join(project_path, 'images'))
