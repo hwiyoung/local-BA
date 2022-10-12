@@ -11,9 +11,9 @@ total_start = time.time()
 project_path = config["proejct_path"]
 container_name = config["container_name"]
 image_name = config["image_name"]
-vm_dataset = config["vm_dataset"]
-vm_points = config["vm_points"]
-vm_opensfm = config["vm_opensfm"]
+dataset = config["dataset"]
+points = config["points"]
+opensfm = config["opensfm"]
 
 if not os.path.isdir(os.path.join(project_path, 'results')):
         os.mkdir(os.path.join(project_path, 'results'))
@@ -24,8 +24,8 @@ processing_images = os.listdir(os.path.join(project_path, 'images'))
 processing_images.sort()
 
 print(f'Run 1 st lba')
-os.system(f'docker run -ti --rm --name {container_name} -v {vm_dataset}:/datasets -v {vm_points}:/code/opendm/ldm/points.py -v '
-        f'{vm_opensfm}:/code/stages/run_opensfm.py {image_name} --project-path /datasets yangpyeong --use-hybrid-bundle-adjustment '
+os.system(f'docker run -ti --rm --name {container_name} -v {dataset}:/datasets -v {points}:/code/opendm/ldm/points.py -v '
+        f'{opensfm}:/code/stages/run_opensfm.py --gpus all {image_name} --project-path /datasets yangpyeong --use-hybrid-bundle-adjustment '
         '--skip-report --fast-orthophoto --orthophoto-resolution 10.0 --end-with odm_orthophoto --time --rerun-all')
 # Result data
 shutil.copy(os.path.join(project_path, 'odm_orthophoto', 'odm_orthophoto.tif'), os.path.join(project_path, 'results', f'{os.path.splitext(processing_images[-1])[0]}.tif'))
@@ -45,8 +45,8 @@ for i, new_image in enumerate(queue):
         f'{vm_opensfm}:/code/stages/run_opensfm.py {image_name} --project-path /datasets yangpyeong --use-hybrid-bundle-adjustment '
         '--skip-report --fast-orthophoto --orthophoto-resolution 10.0 --end-with odm_orthophoto --time') """
 
-        os.system(f'docker run -ti --rm --name {container_name} -v {vm_dataset}:/datasets -v {vm_points}:/code/opendm/ldm/points.py -v '
-        f'{vm_opensfm}:/code/stages/run_opensfm.py {image_name} --project-path /datasets yangpyeong --use-hybrid-bundle-adjustment '
+        os.system(f'docker run -ti --rm --name {container_name} -v {dataset}:/datasets -v {points}:/code/opendm/ldm/points.py -v '
+        f'{opensfm}:/code/stages/run_opensfm.py --gpus all {image_name} --project-path /datasets yangpyeong --use-hybrid-bundle-adjustment '
         '--skip-report --fast-orthophoto --orthophoto-resolution 10.0 --end-with odm_orthophoto --time --rerun-all')
         
         # Result data
